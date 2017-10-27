@@ -25,6 +25,10 @@
 #include "MC-MPC/decomposer/decomposition.h"
 
 
+int ColinearSolver::getPathCoverSize() {
+	return this->pathcover.size();
+}
+
 // Converts the SequenceGraph objects into flow graph and writes it to filename
 void ColinearSolver::convertSequenceGraphToFlowGraph(std::string filename) {
 
@@ -273,7 +277,7 @@ void ColinearSolver::computeForward() {
 }
 
 // +1 every key coordinate to shift from 0-based to 1-based (otherwise the key 0 causes issues)
-std::vector<Tuple*> ColinearSolver::colinearChain(std::vector<Tuple*> M) {
+std::vector<Tuple*> ColinearSolver::solveForAnchors(std::vector<Tuple*> M) {
 	RMaxQTree* ITrees = new RMaxQTree[this->pathcover.size()];
 	RMaxQTree* TTrees = new RMaxQTree[this->pathcover.size()];
 		
@@ -353,7 +357,7 @@ std::vector<Tuple*> ColinearSolver::colinearChain(std::vector<Tuple*> M) {
 			for(int j=0;j<startw.size();j++) {
 
 				// Skip if it's link to self and path of length 1, was processed above
-				if(M.at(startw.at(j))->PFirst == v)
+				if(M.at(startw.at(j))->PLast == v)
 					continue;
 
 				std::pair<int,int> atuple = TTrees[forwardv.at(f).second].query(0,M.at(startw.at(j))->c+1-1);
@@ -409,15 +413,14 @@ std::vector<Tuple*> ColinearSolver::colinearChain(std::vector<Tuple*> M) {
 	
 }
 
-// Note: Patterns have to be the same length
-ColinearSolver::ColinearSolver(std::string graphFile, std::string nodesFile, int patlen) {
-	SGraph = new SequenceGraph();
-	SGraph->readSplicingGraphFile(graphFile, nodesFile, patlen);
+
+ColinearSolver::ColinearSolver(SequenceGraph* SGraph) {
+	this->SGraph = SGraph;
 }
 
 // Solves the co-linear chaining problem (patterns are read from the file, with one pattern per row)
-// Outputs to the given file with first row having the pattern, following row the number of anchors,
-// and then all the anchor tuples, one per row ((patstart,patend),(path in graph))
+// Outputs to the given file
+// Colinear chain rows are in the form ((path in graph),(patstart,patend))
 void ColinearSolver::solve(std::string patternfile, std::string outputfile, int threshold) {
 
 	std::string tempgraphfile = "flowgraph.tmp";
@@ -438,17 +441,19 @@ void ColinearSolver::solve(std::string patternfile, std::string outputfile, int 
 	std::string line;
 
 	while(getline(patin, line)) {
+
+		std::string id = line;
+
+		getline(patin, line);
+
 		std::vector<Tuple*> anchors = SGraph->findAnchors(line, threshold); 
 
-		std::vector<Tuple*> chain = this->colinearChain(anchors);
+		std::vector<Tuple*> chain = this->solveForAnchors(anchors);
+
+		out << id << "#anchors=" << anchors.size() << std::endl;
 
 
 		// Output the chain
-//		for(int i=0;i<chain.size();i++)
-//			std::cout << chain.at(i)->toString() << ", ";
-//		std::cout << std::endl;
-
-
 		for(int i=0;i<chain.size();i++)
 			out << chain.at(i)->toString() << ", ";
 

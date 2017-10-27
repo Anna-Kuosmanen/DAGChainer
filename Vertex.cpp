@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <cstddef>
+#include <algorithm>
 
 Vertex::Vertex(int id, char label, int patlen){
 	this->id=id;

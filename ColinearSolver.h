@@ -32,6 +32,11 @@ private:
 	// forward[u] from the paper
 	std::vector<std::vector<std::pair<int, int> > > forward;
 
+
+public:
+
+	int getPathCoverSize();
+
 	// Converts the SequenceGraph objects into flow graph and writes it to filename
 	void convertSequenceGraphToFlowGraph(std::string filename);
 	
@@ -41,17 +46,11 @@ private:
 	// Computes forward links for all vertices
 	void computeForward();
 	
-	std::vector<Tuple*> colinearChain(std::vector<Tuple*> anchors);
+	std::vector<Tuple*> solveForAnchors(std::vector<Tuple*> M);
 
-
-public:
-
-	// Note: Patterns have to be the same length
-	ColinearSolver(std::string graphFile, std::string nodesFile, int patlen);
+	ColinearSolver(SequenceGraph* SGraph);
 	
-	// Solves the co-linear chaining problem (patterns are read from the file, with one pattern per row)
-	// Outputs to the given file with first row having the pattern, following row the number of anchors,
-	// and then all the anchor tuples, one per row ((patstart,patend),(path in graph))
+	// Solves the co-linear chaining problem
 	void solve(std::string patternfile, std::string outputfile, int threshold);
 
 };
