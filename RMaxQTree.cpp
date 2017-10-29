@@ -82,7 +82,10 @@ void RMaxQTree::init(int node, int b, int e, int *keys) {
 
 	// Empty constructor for creating arrays
 	RMaxQTree::RMaxQTree() {
+	}
 
+	RMaxQTree::~RMaxQTree() {
+		delete [] this->tree;
 	}
 
 	// For filling the empty RMaxQTrees

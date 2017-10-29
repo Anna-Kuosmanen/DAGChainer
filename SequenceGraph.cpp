@@ -62,6 +62,9 @@ void SequenceGraph::removeDuplicates(std::vector<Tuple*> &anchors) {
 	anchors = tmp;
 }
 
+SequenceGraph::SequenceGraph() {
+}
+
 // Need to define destructor to delete all those vertex
 SequenceGraph::~SequenceGraph() {
 	for(int i=0;i<this->getNoOfVertices();i++)
@@ -202,9 +205,8 @@ bool SequenceGraph::reportMatch(Vertex* v, int i, int threshold, std::vector<Tup
 	return false;
 }
 
-// Find and return all the anchors between a pattern and the sequence graph
-std::vector<Tuple*> SequenceGraph::findAnchors(std::string pattern, int threshold) {
-	std::vector<Tuple*> anchors;
+// Find all the anchors between a pattern and the sequence graph
+void SequenceGraph::findAnchors(std::vector<Tuple*> &anchors, std::string pattern, int threshold) {
 
 	// For every vertex
 	for(int ver=0;ver<this->getNoOfVertices();ver++) {
@@ -230,8 +232,6 @@ std::vector<Tuple*> SequenceGraph::findAnchors(std::string pattern, int threshol
 	}
 
 	this->removeDuplicates(anchors);
-
-	return anchors;
 
 }
 

@@ -20,12 +20,12 @@ private:
 
 public:
 
-	BruteForceSolver(SequenceGraph* SGraph);
+	BruteForceSolver(SequenceGraph* &SGraph);
 
 	// The recursive function that does DFS and updates Tuple orig's coverage as it goes
 	void DFSUpdate(Tuple* orig, Vertex* v, std::vector<bool> &covered, std::vector<std::vector<int> > &end, std::vector<Tuple*> &M);	
 
-	std::vector<Tuple*> solveForAnchors(std::vector<Tuple*> M);
+	void solveForAnchors(std::vector<Tuple*> &M, std::vector<Tuple*> &solution);
 
 	// Threshold is the minimum length of the anchors
 	void solve(std::string patternfile, std::string outputfile, int threshold);

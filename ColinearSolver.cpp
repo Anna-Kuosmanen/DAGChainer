@@ -101,20 +101,20 @@ void ColinearSolver::solveForPaths(std::string filename) {
 	//Extract paths from the graph according to the minFlow
 
 	vector<ListDigraph::Node>* paths = new vector<ListDigraph::Node>[num_paths];
-	ListDigraph::NodeMap<int*> reachable(graph);
+//	ListDigraph::NodeMap<int*> reachable(graph);
 
 	//paths are picked up one path at time
 	for (int i = 0; i < num_paths; ++i){
 		ListDigraph::Node node = s;
 		int path_index = 0;
 		while(node != t){
-			if(reachable[node] == NULL){
-				reachable[node] = (int*) calloc(num_paths, sizeof(int));
-				for (int i = 0; i < num_paths; ++i){
-					reachable[node][i] = INT_MAX;
-				}
-			}
-			reachable[node][i] = path_index;
+//			if(reachable[node] == NULL){
+//				reachable[node] = (int*) calloc(num_paths, sizeof(int));
+//				for (int i = 0; i < num_paths; ++i){
+//					reachable[node][i] = INT_MAX;
+//				}
+//			}
+//			reachable[node][i] = path_index;
 
 			for (ListDigraph::OutArcIt o(graph, node); o != INVALID; ++o){
 				if(minflow[o] > 0){
@@ -127,10 +127,10 @@ void ColinearSolver::solveForPaths(std::string filename) {
 			path_index++;
 		}
 
-		if(reachable[t] == NULL){
-			reachable[t] = (int*) calloc(num_paths, sizeof(int));
-		}
-		reachable[t][i] = path_index;
+//		if(reachable[t] == NULL){
+//			reachable[t] = (int*) calloc(num_paths, sizeof(int));
+//		}
+//		reachable[t][i] = path_index;
 		paths[i].push_back(t);
 	}
 	// End of Topi's code
@@ -145,6 +145,9 @@ void ColinearSolver::solveForPaths(std::string filename) {
 		}
 		this->pathcover.push_back(path);
 	}
+
+	// Clean-up
+	delete [] paths;
 }
 
 
@@ -277,7 +280,7 @@ void ColinearSolver::computeForward() {
 }
 
 // +1 every key coordinate to shift from 0-based to 1-based (otherwise the key 0 causes issues)
-std::vector<Tuple*> ColinearSolver::solveForAnchors(std::vector<Tuple*> M) {
+void ColinearSolver::solveForAnchors(std::vector<Tuple*> &M, std::vector<Tuple*> &solution) {
 	RMaxQTree* ITrees = new RMaxQTree[this->pathcover.size()];
 	RMaxQTree* TTrees = new RMaxQTree[this->pathcover.size()];
 		
@@ -383,7 +386,7 @@ std::vector<Tuple*> ColinearSolver::solveForAnchors(std::vector<Tuple*> M) {
 
 	}
 	
-	std::vector<Tuple*> solution;
+	std::vector<Tuple*> tempsolution;
 	
 	// Find max C[j]
 	int maxvalue = 0;
@@ -396,26 +399,34 @@ std::vector<Tuple*> ColinearSolver::solveForAnchors(std::vector<Tuple*> M) {
 	}
 	// ... and backtrack
 	Tuple* currentTuple = M.at(maxindex);
-	solution.push_back(currentTuple);
+	tempsolution.push_back(currentTuple);
 	
 	while(currentTuple->previous != NULL) {
 		currentTuple =currentTuple->previous;
-		solution.push_back(currentTuple);
+		tempsolution.push_back(currentTuple);
 	}
 	
 	// It's backwards, so reverse
-	std::vector<Tuple*> revsolution;
+	for(int i=tempsolution.size()-1;i>=0;i--)
+		solution.push_back(tempsolution.at(i));
 	
-	for(int i=solution.size()-1;i>=0;i--)
-		revsolution.push_back(solution.at(i));
-	
-	return revsolution;
+
+	// Clean-up
+	delete [] start;
+	delete [] end;
+	delete [] TTrees;
+	delete [] ITrees;
+
 	
 }
 
 
-ColinearSolver::ColinearSolver(SequenceGraph* SGraph) {
+ColinearSolver::ColinearSolver(SequenceGraph* &SGraph) {
 	this->SGraph = SGraph;
+}
+
+ColinearSolver::~ColinearSolver() {
+
 }
 
 // Solves the co-linear chaining problem (patterns are read from the file, with one pattern per row)
@@ -446,9 +457,13 @@ void ColinearSolver::solve(std::string patternfile, std::string outputfile, int 
 
 		getline(patin, line);
 
-		std::vector<Tuple*> anchors = SGraph->findAnchors(line, threshold); 
+		std::vector<Tuple*> anchors;
 
-		std::vector<Tuple*> chain = this->solveForAnchors(anchors);
+		SGraph->findAnchors(anchors, line, threshold); 
+
+		std::vector<Tuple*> chain;
+
+		this->solveForAnchors(anchors, chain);
 
 		out << id << "#anchors=" << anchors.size() << std::endl;
 
@@ -457,7 +472,11 @@ void ColinearSolver::solve(std::string patternfile, std::string outputfile, int 
 		for(int i=0;i<chain.size();i++)
 			out << chain.at(i)->toString() << ", ";
 
-		out << std::endl;	
+		out << std::endl;
+
+		// Clean-up the anchor tuples
+		for(int i=0;i<anchors.size();i++)
+			delete anchors.at(i);	
 	}
 
 	// TODO possible check that the file stream is good here

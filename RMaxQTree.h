@@ -56,6 +56,8 @@ public:
 	// Empty constructor for creating arrays
 	RMaxQTree();
 
+	~RMaxQTree();
+
 	// For filling the empty RMaxQTrees
 	void fillRMaxQTree(int *keys, int keyLen);
 

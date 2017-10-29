@@ -13,7 +13,7 @@
 #include <algorithm>
 
 
-BruteForceSolver::BruteForceSolver(SequenceGraph* SGraph) {
+BruteForceSolver::BruteForceSolver(SequenceGraph* &SGraph) {
 	this->SGraph = SGraph;
 }
 
@@ -54,7 +54,7 @@ void BruteForceSolver::DFSUpdate(Tuple* orig, Vertex* v, std::vector<bool> &cove
 }
 
 // Applies the brute-force algorithm on the given anchors
-std::vector<Tuple*> BruteForceSolver::solveForAnchors(std::vector<Tuple*> M) {
+void BruteForceSolver::solveForAnchors(std::vector<Tuple*> &M, std::vector<Tuple*> &solution) {
 
 	std::vector<std::vector<int> > end;
 
@@ -112,7 +112,7 @@ std::vector<Tuple*> BruteForceSolver::solveForAnchors(std::vector<Tuple*> M) {
 			covered.at(i) = false;
 	}
 
-	std::vector<Tuple*> solution;
+	std::vector<Tuple*> tempsolution;
 
 	// Find max C[j]
 	int maxvalue = 0;
@@ -125,20 +125,17 @@ std::vector<Tuple*> BruteForceSolver::solveForAnchors(std::vector<Tuple*> M) {
 	}
 	// ... and backtrack
 	Tuple* currentTuple = M.at(maxindex);
-	solution.push_back(currentTuple);
+	tempsolution.push_back(currentTuple);
 
 	while(currentTuple->previous != NULL) {
 		currentTuple =currentTuple->previous;
-		solution.push_back(currentTuple);
+		tempsolution.push_back(currentTuple);
 	}
 
 	// It's backwards, so reverse
-	std::vector<Tuple*> revsolution;
 
 	for(int i=solution.size()-1;i>=0;i--)
-		revsolution.push_back(solution.at(i));
-
-	return revsolution;
+		solution.push_back(tempsolution.at(i));
 
 }
 
@@ -152,12 +149,18 @@ void BruteForceSolver::solve(std::string patternfile, std::string outputfile, in
 	std::string line;
 
         while(getline(patin, line)) {
-                std::vector<Tuple*> anchors = SGraph->findAnchors(line, threshold);
-                std::vector<Tuple*> chain = solveForAnchors(anchors);
+                std::vector<Tuple*> anchors;
+		SGraph->findAnchors(anchors, line, threshold);
+                std::vector<Tuple*> chain;
+		solveForAnchors(anchors, chain);
 
                 for(int i=0;i<chain.size();i++)
                         out << chain.at(i)->toString() << ", ";
 
                 out << std::endl;
+
+		// Clean-up
+		for(int i=0;i<anchors.size();i++)
+			delete anchors.at(i);
         }
 }

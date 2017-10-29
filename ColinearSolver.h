@@ -46,10 +46,12 @@ public:
 	// Computes forward links for all vertices
 	void computeForward();
 	
-	std::vector<Tuple*> solveForAnchors(std::vector<Tuple*> M);
+	void solveForAnchors(std::vector<Tuple*> &M, std::vector<Tuple*> &solution);
 
-	ColinearSolver(SequenceGraph* SGraph);
+	ColinearSolver(SequenceGraph* &SGraph);
 	
+	~ColinearSolver();
+
 	// Solves the co-linear chaining problem
 	void solve(std::string patternfile, std::string outputfile, int threshold);
 

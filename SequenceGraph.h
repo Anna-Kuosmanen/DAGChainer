@@ -24,9 +24,7 @@ public:
 				  // Currently the order comes from the file format (splicing graph files are ordered by genomic coordinates).
 
 	// Actual creation is done in the reading function
-	SequenceGraph() {
-
-	}
+	SequenceGraph();
 
 	void addToVertices(Vertex* v);
 
@@ -62,7 +60,7 @@ public:
 	// Find and return all the anchors between a pattern and the sequence graph
 		
 	// Note that there's no reporting if the length of the prefix is 1, it has to be handled here
-	std::vector<Tuple*> findAnchors(std::string pattern, int threshold);
+	void findAnchors(std::vector<Tuple*> &results, std::string pattern, int threshold);
 
 	// Graph file has first row the number of nodes (exons), then the edges (i+1'th row has the outgoing edges from i'th node)
 	// Nodes file has pairs of node number (first row) and the corresponding sequence (second row) for building the sequence graph (they need to be in order, labels are not checked currently!)
