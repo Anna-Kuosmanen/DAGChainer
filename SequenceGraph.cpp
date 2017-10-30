@@ -128,6 +128,14 @@ bool SequenceGraph::fillDArray(Vertex* v, int i, std::string pattern) {
 		
 }
 
+void SequenceGraph::clearDArray(int patlen) {
+	for(int v=0;v<this->getNoOfVertices();v++) {
+		for(int i=0;i<patlen;i++) {
+			this->getVertex(v)->updateDValue(i, 0);
+		}
+	}
+}
+
 // Reports matches that end at this vertex, for index i of D array
 bool SequenceGraph::reportMatch(Vertex* v, int i, int threshold, std::vector<Tuple*> &results) {
 	if(i >= 0 && v->getDValue(i) >= threshold) {
@@ -232,6 +240,7 @@ void SequenceGraph::findAnchors(std::vector<Tuple*> &anchors, std::string patter
 	}
 
 	this->removeDuplicates(anchors);
+	this->clearDArray(pattern.size());
 
 }
 

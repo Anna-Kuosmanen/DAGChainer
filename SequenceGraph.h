@@ -52,6 +52,8 @@ public:
 	// If i is outside pattern length, return false
 	bool fillDArray(Vertex* v, int i, std::string pattern);
 
+	void clearDArray(int patlen);
+
 	// Reports matches that end at this vertex, for index i of D array
 	// Report is in the form of ((start in pattern, end in pattern),(list of path nodes in graph))
 		
