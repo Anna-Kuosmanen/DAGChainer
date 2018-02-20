@@ -1,0 +1,10 @@
+*
+!.gitignore
+!*/
+!*.sh
+!*.cpp
+!*.h
+!*.py
+!*.md
+!*makefile
+!*example_graph

@@ -8,10 +8,10 @@
  */
 
 // TODO: Support for different lengths of pattern? Currently the pattern length has to be initialized when graph is read from files
-// TODO: Exception checks, in case indexes > vector size are requested
 
 #include "SequenceGraph.h"
 #include "Tuple.h"
+#include "utils.h"
 
 #include "Vertex.h"
 #include <cstdlib>
@@ -25,7 +25,9 @@ void SequenceGraph::addToVertices(Vertex* v) {
 	(this->vertices).push_back(v);
 }
 
-template<typename Out>
+
+// Moved to utils
+/*template<typename Out>
 void SequenceGraph::split(const std::string &s, char delim, Out result) {
 	std::stringstream ss;
 	ss.str(s);
@@ -39,7 +41,7 @@ std::vector<std::string> SequenceGraph::split(const std::string &s, char delim) 
 	std::vector<std::string> elems;
 	split(s, delim, std::back_inserter(elems));
 	return elems;
-}
+}*/
 
 
 // Removes duplicates from the anchor list
@@ -75,7 +77,7 @@ int SequenceGraph::getNoOfVertices() {
 	return this->vertices.size();
 }
 
-// Returns i'th vertex
+// Returns i'th vertex (or NULL if invalid)
 Vertex* SequenceGraph::getVertex(int i) {
 	if(i< this->vertices.size())
 		return this->vertices.at(i);
@@ -247,10 +249,19 @@ void SequenceGraph::findAnchors(std::vector<Tuple*> &anchors, std::string patter
 
 // Graph file has first row the number of nodes (exons), then the edges (i+1'th row has the outgoing edges from i'th node)
 // Nodes file has pairs of node number (first row) and the corresponding sequence (second row) for building the sequence graph (they need to be in order, labels are not checked currently!)
+// TODO Check the labels, then the nodes file wouldn't need to be in order
 // Patlen is the length of the reads (needed to initialize the arrays in vertex objects)
-void SequenceGraph::readSplicingGraphFile(std::string graphfile, std::string nodesfile, int patlen) {
+// Returns true if the reading succeeded (files existed)
+bool SequenceGraph::readSplicingGraphFile(std::string graphfile, std::string nodesfile, int patlen) {
 	std::ifstream graphIn(graphfile.c_str());
 	std::ifstream nodesIn(nodesfile.c_str());
+
+	if(!graphIn.good() || !nodesIn.good()) {
+		graphIn.close();
+		nodesIn.close();
+		return false;
+
+	}
 
 	std::string line;
 		
@@ -315,5 +326,6 @@ void SequenceGraph::readSplicingGraphFile(std::string graphfile, std::string nod
 
 	graphIn.close();
 	nodesIn.close();
+	return true;
 
 }
