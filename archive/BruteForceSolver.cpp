@@ -26,7 +26,7 @@ BruteForceSolver::BruteForceSolver(SequenceGraph* &SGraph) {
 void BruteForceSolver::DFSUpdate(Tuple* orig, Vertex* v, std::vector<bool> &covered, std::vector<std::vector<int> > &end, std::vector<Tuple*> &M) {
 	covered.at(v->getId()) = true;
 	// Check if some tuple ends at this vertex
-	for(int i=0;i<end.at(v->getId()).size();i++) {
+	for(unsigned i=0;i<end.at(v->getId()).size();i++) {
 		Tuple* candtuple = M.at(end.at(v->getId()).at(i));
 		int C = -1;
 		if(candtuple->d < orig->c)
@@ -44,8 +44,7 @@ void BruteForceSolver::DFSUpdate(Tuple* orig, Vertex* v, std::vector<bool> &cove
 	// Recur for every outneighbor in the reverse graph, i.e. for every inneighbor
 	std::vector<Vertex*> outneighbors = v->getInNeighbors();
 
-	for(int i=0;i<outneighbors.size();i++) {
-		int othercov = 0;
+	for(unsigned i=0;i<outneighbors.size();i++) {
 		if(!(covered.at(outneighbors.at(i)->getId())))
 			DFSUpdate(orig, outneighbors.at(i), covered, end, M);
 
@@ -68,7 +67,7 @@ void BruteForceSolver::solveForAnchors(std::vector<Tuple*> &M, std::vector<Tuple
 	}
 
 	// At end[i] add the indexes of all pairs whose path ends at i
-	for(int j=0;j<M.size();j++) {
+	for(unsigned j=0;j<M.size();j++) {
 		end.at(M.at(j)->PLast).push_back(j);
 	}
 
@@ -77,7 +76,7 @@ void BruteForceSolver::solveForAnchors(std::vector<Tuple*> &M, std::vector<Tuple
 
 	for(int i=0;i<this->SGraph->getNoOfVertices();i++) {
 		std::vector<int> ends_for_one = end.at(i);
-		for(int j=0;j<ends_for_one.size();j++) {
+		for(unsigned j=0;j<ends_for_one.size();j++) {
 			temp.push_back(M.at(ends_for_one.at(j)));
 		}
 
@@ -89,12 +88,12 @@ void BruteForceSolver::solveForAnchors(std::vector<Tuple*> &M, std::vector<Tuple
 	for(int i=0;i<this->SGraph->getNoOfVertices();i++)
 		end.at(i).clear();
 
-	for(int j=0;j<M.size();j++) {
+	for(unsigned j=0;j<M.size();j++) {
 		end.at(M.at(j)->PLast).push_back(j);
 	}
 
 
-	for(int j=0;j<M.size();j++) {
+	for(unsigned j=0;j<M.size();j++) {
 
 		// The coverage if this is the first of the chain
 		M.at(j)->C = M.at(j)->d - M.at(j)->c +1;
@@ -103,7 +102,7 @@ void BruteForceSolver::solveForAnchors(std::vector<Tuple*> &M, std::vector<Tuple
 		std::vector<Vertex*> neighbors = w->getInNeighbors();
 
 		// Depth-first search for every inneighbor (outneighbor in reverse) of startpoint of this tuple, updates directly to M.at(j)->C
-		for(int k=0;k<neighbors.size();k++) {
+		for(unsigned k=0;k<neighbors.size();k++) {
 
 			DFSUpdate(M.at(j), neighbors.at(k), covered, end, M);
 		}
@@ -117,7 +116,7 @@ void BruteForceSolver::solveForAnchors(std::vector<Tuple*> &M, std::vector<Tuple
 	// Find max C[j]
 	int maxvalue = 0;
 	int maxindex = -1;
-	for(int i=0;i<M.size();i++) {
+	for(unsigned i=0;i<M.size();i++) {
 		if(M.at(i)->C > maxvalue) {
 			maxvalue = M.at(i)->C;
 			maxindex = i;
@@ -154,13 +153,13 @@ void BruteForceSolver::solve(std::string patternfile, std::string outputfile, in
                 std::vector<Tuple*> chain;
 		solveForAnchors(anchors, chain);
 
-                for(int i=0;i<chain.size();i++)
+                for(unsigned i=0;i<chain.size();i++)
                         out << chain.at(i)->toString() << ", ";
 
                 out << std::endl;
 
 		// Clean-up
-		for(int i=0;i<anchors.size();i++)
+		for(unsigned i=0;i<anchors.size();i++)
 			delete anchors.at(i);
         }
 }
