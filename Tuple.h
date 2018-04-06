@@ -29,7 +29,7 @@ public:
 	
 	// Best ordered coverage for some set of tuples that ends in this tuple
 	int C;
-	// Pointer to the previous tuple (in the chain of best ordered coverage)
+	// The previous tuple (in the chain of best ordered coverage)
 	Tuple* previous;
 	
 	Tuple(std::vector<int> P, int c, int d) {
@@ -48,7 +48,7 @@ public:
 	std::string toString() {
 		std::stringstream sstm;
 		sstm << "((";
-		for(int i=0;i<P.size()-1;i++)
+		for(unsigned i=0;i<P.size()-1;i++)
 			sstm << P.at(i) << ", ";
 		sstm << this->PLast << "), " << this->c << ", " << this->d << ")";
 
@@ -64,7 +64,7 @@ public:
 		if(this->P.size() != other.P.size())
 			return false;
 
-		for(int i=0;i<this->P.size();i++) {
+		for(unsigned i=0;i<this->P.size();i++) {
 			if(this->P.at(i) != other.P.at(i)) {
 				return false;
 			}

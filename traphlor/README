@@ -1,0 +1,131 @@
+Traphlor - www.cs.helsinki.fi/en/gsa/traphlor
+
+A tool for predicting transcript sequences with long reads.
+
+While Traphlor is developed to use long reads spanning multiple exons,
+it functions with short reads as well. It has been tested with reads up
+to eight kilobases long.
+
+Traphlor has been tested using g++ 4.6.4 and 4.7 (64bit Ubuntu). 
+If you encounter any problems with other compilers, or with the 
+software itself, please let us know. You can contact us by 
+email: aekuosma@cs.helsinki.fi
+
+
+a#########################################################
+# Change log                                            #
+#########################################################
+
+2015-10-20
+- Adjustments to graph creation and creating flow network
+from subpath constraints.
+
+2015-05-12
+- Fix to graph creation to consider mismappings near splice sites.
+
+2015-04-28
+- Graph creation overhaul. It is now faster and more sensitive.
+
+2015-02-14
+- Deletions were not handled correctly in C++ version under
+certain conditions, this is now fixed
+- Pruned the number of temporary files Traphlor creates as
+it caused unexpected behavior on some systems.
+NOTE: If you are using Traphlor and get very low number of 
+predicted transcripts (< 10% of expected), please consider
+running the software with one chromosome at a time because
+of this problem.
+
+2015-02-04
+- The whole pipeline has been imported to C++! So everything's
+a lot faster. Also parallel support was added.
+
+2014-11-12
+- First public release.
+
+
+########################################################
+# Installation                                         #
+########################################################
+
+This package now contains two versions of the pipeline:
+Python and C++. Using C++ version is highly recommended,
+as it is an order of magnitude faster. But Python version
+is  kept in case users have problems with bamtools library, 
+which is required by C++ pipeline. However, the Python 
+version is not maintained or updated.
+
+Compile the main engine and C++ pipeline by issuing 'make' in 
+RNA_MPC_SC subdirectory.
+
+Traphlor uses lemon library[1] for the flow engine.
+C++ pipeline uses bamtools library[2] and Python pipeline uses
+pysam library[3] for splicing graph creation.
+
+Lemon library and bamtools library are included in the source 
+code package, but if you wish to use your own version of lemon 
+or bamtools, change the corresponding flags in the Makefile. 
+
+
+######################################################
+# Running Traphlor                                   #
+######################################################
+
+To run C++ Traphlor pipeline, bamtools library must be in
+LD_LIBRARY_PATH. 
+
+usage: ./runTraphlor [options]
+
+Required options:
+    -i INPUT, --input INPUT        Input file
+    -o OUTPUT, --output OUTPUT     Output directory
+
+Other options:
+    --alternative-threshold THRESHOLD  
+          Slope threshold for searching for alternative
+          transcripts starts/ends. The smaller, the more
+          sensitive, but too small value can cause false
+          positives if coverage is very uneven. Default 0.3
+    -d, --debug                    Debug mode
+    -P <int>, --parallel <int>     Number of parallel threads to use (default is one,
+                                   give argument 0 to use all available cores).
+
+
+This help text can be seen by not giving any options.
+
+Python pipeline can be run by invoking 'python runTraphlor.py [options]'.
+Supported options are the same, except no parallel support.
+For the python pipeline, pysam library must be in python path.
+
+**Please note that as Python pipeline uses pileup engine to find the ranges
+on which to build splicing graphs (which bamtools library does not support),
+the results produced by the two pipelines can be slightly different
+if you have many alignments with 0 mapping quality (pileup engine cannot 
+distinguish mapping quality). In general C++ pipeline has higher sensitivity
+in these cases.**
+
+For both versions, if the alignment file is not indexed already,
+samtools[4] must be in system path.
+
+Note: the executable 'traphlor' is the flow engine for 
+Python pipeline. It is not meant to be ran as stand-alone.
+
+
+####################################################
+# Input and output                                 #
+####################################################
+
+Traphlor takes as input a BAM file. The file must be sorted with samtools. 
+Traphlor cannot use SAM files, they must be converted into BAM.
+If the BAM file isn't indexed already, it will be indexed by the tool.
+
+Traphlor outputs the predicted transcripts in standard GTF format. As Traphlor 
+does not (at this point) predict expression values, there will not be RPKM/FPKM tags.
+
+##################################################
+# References                                     #
+##################################################
+[1] lemon.cs.elte.hu/
+[2] github.com/pezmaster31/bamtools
+[3] github.com/pysam-developers/pysam
+[4] sourceforge.net/projects/samtools/

@@ -47,7 +47,7 @@ void Vertex::updateDValue(int i, int value) {
 }
 
 int Vertex::getDValue(int i) {
-	if(i<D.size())
+	if(i<int(D.size()))
 		return this->D[i];
 	else
 		return -1;
@@ -66,7 +66,7 @@ std::vector<Vertex*> Vertex::getBackpointers() {
 }
 
 Vertex* Vertex::getBackpointer(int i) {
-	if(i<backpointers.size())
+	if(i<int(backpointers.size()))
 		return this->backpointers.at(i);
 	else
 		return NULL;
@@ -74,7 +74,7 @@ Vertex* Vertex::getBackpointer(int i) {
 
 // Add backpointer for i'th prefix
 void Vertex::addBackpointer(int i, Vertex* v) {
-	if(i<backpointers.size())
+	if(i<int(backpointers.size()))
 		this->backpointers.at(i) = v;
 }
 

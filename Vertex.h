@@ -4,6 +4,8 @@
  * Created on: Sep 16th 2017
  *	Author: aekuosma
  *
+ * This is basically a linked list structure
+ * 
  */
 
 #ifndef VERTEX_H_
@@ -24,7 +26,6 @@ private:
 
 public:
 	Vertex(int id, char label, int patlen);
-
 
 	int getId();
 

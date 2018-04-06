@@ -2,7 +2,7 @@
  *
  * ColinearSolver.h
  *
- * Created on Oct 3rd 2017
+ * Created on Oct 3rd 2018
  *	Author: aekuosma
  *
  */
@@ -13,25 +13,35 @@
 
 #include "SequenceGraph.h"
 #include "Vertex.h"
+#include "ColinearChain.h"
+#include "FastaEntry.h"
+#include "MaximalExactMatch.h"
 
 #include <vector>
 
 class ColinearSolver {
 
+
 private:
 
 	SequenceGraph* SGraph;
-	std::vector<std::string> patterns;
+	
 
 	// Contains the vertex sequence for each path
 	std::vector<std::vector<int> > pathcover;
 
-	// Contains, for each vertex v, the paths in lies on
+	// Contains, for each vertex v, the paths it lies on
 	std::vector<std::vector<int> > pathsforv;
 
 	// forward[u] from the paper
 	std::vector<std::vector<std::pair<int, int> > > forward;
 
+	// For clean-up purposes, otherwise the old anchor pointers are lost
+	std::vector<Tuple*> lastanchors;
+
+	// For using GCSA2 index
+	gcsa::GCSA gcsa;
+	gcsa::LCPArray lcp;
 
 public:
 
@@ -46,14 +56,20 @@ public:
 	// Computes forward links for all vertices
 	void computeForward();
 	
-	void solveForAnchors(std::vector<Tuple*> &M, std::vector<Tuple*> &solution);
+	ColinearChain solveForAnchors(std::vector<Tuple*> &M);
 
 	ColinearSolver(SequenceGraph* &SGraph);
 	
 	~ColinearSolver();
 
+	// Cleans up
+	void clearAnchors();
+
 	// Solves the co-linear chaining problem
-	void solve(std::string patternfile, std::string outputfile, int threshold);
+	ColinearChain solve(FastaEntry read, std::string gcsa_file, std::string lcp_file, int minthres, bool bothways);
+
+	void readGCSA2(std::string basename);
+
 
 };
 

@@ -1,0 +1,10 @@
+prefix=/Users/Alex/Dropbox/Bioinformatics/RNA_Transcript_Expression/transcription/transcription/lemon
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: LEMON
+Description: Library for Efficient Modeling and Optimization in Networks
+Version: 1.2
+Libs: -L${libdir} -lemon          
+Cflags: -I${includedir}
