@@ -59,7 +59,7 @@ private:
 
 	// Helper function for convertChainToExons
 	// If the colinear chain doesn't form a valid subpath, fix (e.g. no anchors on a short intervening exon)
-	void fixPath(std::vector<int> &exons);
+	void fixPath(std::vector<int> &exons, int stringency);
 
 public:
 	// Actual creation is done in the reading function
@@ -91,7 +91,7 @@ public:
 	// If concat is true, concatenate unary paths
 	void outputGFA(std::string gfaout, bool concat);
 
-	std::string convertChainToExons(ColinearChain chain);
+	std::vector<int> convertChainToExons(ColinearChain chain, int stringency);
 
 };
 

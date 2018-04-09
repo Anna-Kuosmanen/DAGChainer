@@ -57,6 +57,9 @@ void print_help(char const *name) {
 		<< "    -o OUTPUT --output OUTPUT     Output directory." << std::endl
 		<< "Other options:" << std::endl
 		<< "    -m SEEDLEN --minimum SEEDLEN  Minimum seed length (default 5)." << std::endl
+		<< "    -t INT --stringency INT       How strict the subpath reporting is. Higher values allow for more distant" << std::endl
+		<< "                                  anchors to form a chain (Range: 0-5. Default: 0). If using very high minimum" << std::endl
+		<< "                                  seed length, it is adviced to adjust this parameter, as no anchors might map to smaller exons." << std::endl
 		<< "    -d  --debug                   Debug mode on." << std::endl;
 
 
@@ -64,7 +67,7 @@ void print_help(char const *name) {
 }
 
 
-void process_region(SamReader* samreader, GenomeReader* genomereader, std::string reference, long start, long end, int file_tally, int mem_length_threshold, bool debug, std::string long_reads_file, std::string odir) {
+void process_region(SamReader* samreader, GenomeReader* genomereader, std::string reference, long start, long end, int file_tally, int mem_length_threshold, bool debug, std::string long_reads_file, std::string odir, int stringency) {
 
 	std::stringstream sstm;
 
@@ -174,6 +177,7 @@ void process_region(SamReader* samreader, GenomeReader* genomereader, std::strin
 	FastaEntry entry;
 
 	std::vector<std::string> subpath_list;
+	std::vector<std::vector<int> > subpath_vector_list;
 	std::vector<double> subpath_coverages;
 
 	// For each long read consider both the read and its reverse complement
@@ -196,15 +200,16 @@ void process_region(SamReader* samreader, GenomeReader* genomereader, std::strin
 			continue;
 
 		// Convert the best chain into a subpath in the splicing graph
-		std::string subpath = SGraph->convertChainToExons(bestchain);
+		std::vector<int> subpath = SGraph->convertChainToExons(bestchain, stringency);
 
-		// convertChainToExons returns empty string if it could not form a subpath that respects the structure of the graph with minimal adjustments
+		// convertChainToExons returns empty vector if it could not form a subpath that respects the structure of the graph with minimal adjustments
 		// (See the function in SequenceGraph.ccp for details)
-		if(subpath == "")
+		if(subpath.size() == 0)
 			continue;
 
-		// Save the best subpath to the list
-		if(subpath_list.size() == 0) {
+		subpath_vector_list.push_back(subpath);
+
+/*		if(subpath_list.size() == 0) {
 			subpath_list.push_back(subpath);
 			subpath_coverages.push_back(1.0);
 		}
@@ -225,8 +230,40 @@ void process_region(SamReader* samreader, GenomeReader* genomereader, std::strin
 
 			}	
 
-		}
+		}*/
 	}
+
+	// List holds a lot of duplicates, sort, count coverages, and convert the final products into strings
+	sort(subpath_vector_list.begin(), subpath_vector_list.end());
+
+	for(unsigned i=0;i<subpath_vector_list.size();i++) {
+		std::vector<int> path_vector = subpath_vector_list.at(i);
+
+		// Length 1 is not accepted
+		if(path_vector.size() == 1)
+			continue;
+
+		for(unsigned j=0;j<path_vector.size()-1;j++)
+			sstm << path_vector.at(j) << " ";
+		sstm << path_vector.at(path_vector.size()-1);
+
+		std::string path_string = sstm.str();
+		sstm.str("");
+
+		if(subpath_list.size() == 0) {
+			subpath_list.push_back(path_string);
+			subpath_coverages.push_back(1.0);
+		}
+		else if(subpath_list.at(subpath_list.size()-1) == path_string) {
+			subpath_coverages.at(subpath_coverages.size()-1)++;
+		}
+		else {
+			subpath_list.push_back(path_string);
+			subpath_coverages.push_back(1.0);		
+		}
+
+	}
+
 
 	// Divide the counts by the lengths
 
@@ -253,6 +290,7 @@ void process_region(SamReader* samreader, GenomeReader* genomereader, std::strin
 		}
 		subpath_coverages.at(i) = subpath_coverages.at(i)/total_length;
 	}
+
 
 	// Write the subpaths into the original splicing graph file (append)
 	std::ofstream output;
@@ -371,6 +409,7 @@ int main(int argc, char **argv) {
 		{"genome", required_argument, 0, 'g'},
 		{"output", required_argument, 0, 'o'},
 		{"minimum", required_argument, 0, 'm'},
+		{"stringency", required_argument, 0, 't'},
 		{"debug", no_argument, 0, 'd'},
 		{0, 0, 0, 0}
 
@@ -385,10 +424,11 @@ int main(int argc, char **argv) {
 
 	int mem_length_threshold = 5;
 	bool debug = false;
+	int stringency = 0;
 
 	int option_index = 0;
 	int c;
-	while((c = getopt_long(argc, argv, "s:l:g:o:m:d", long_options, &option_index)) != -1){
+	while((c = getopt_long(argc, argv, "s:l:g:o:m:t:d", long_options, &option_index)) != -1){
 
 		switch(c) {
 			case 's':
@@ -401,6 +441,8 @@ int main(int argc, char **argv) {
 				odir = string(optarg); break;
 			case 'm':
 				mem_length_threshold = atoi(optarg); break;
+			case 't':
+				stringency = atoi(optarg); break;
 			case 'd':
 				debug = true; break;
 
@@ -408,6 +450,12 @@ int main(int argc, char **argv) {
 	}
 
 	if(samfile == "" || fastafile == "" || genomefile == "" || odir == "") {
+		print_help(argv[0]);
+		return 1;
+	}
+
+	if(stringency < 0 || stringency > 5) {
+		std::cerr << "Stringency value should be in range 0-5." << std::endl;
 		print_help(argv[0]);
 		return 1;
 	}
@@ -498,7 +546,7 @@ int main(int argc, char **argv) {
 		long end;
 		tie(reference, start, end) = ranges.at(file_tally);
 
-		process_region(sam_handle, genome_handle, reference, start, end, file_tally, mem_length_threshold, debug, fastafile, odir);
+		process_region(sam_handle, genome_handle, reference, start, end, file_tally, mem_length_threshold, debug, fastafile, odir, stringency);
 	}
 
 	sam_handle->Close();

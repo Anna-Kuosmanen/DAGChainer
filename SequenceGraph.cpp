@@ -673,8 +673,8 @@ void SequenceGraph::outputGFA(std::string gfaout, bool concat) {
 
 // Helper function for convertChainToExons
 // Colinear chain might not have any anchors on short exons, so here we check that the path is valid, and add nodes if necessary
-// If adding more than one exon between i'th and i+1'th exon of the path would be required, or adding more than 3 exons total, scrap the whole thing, it's too unreliable
-void SequenceGraph::fixPath(std::vector<int> &exons) {
+// If adding more than one exon between i'th and i+1'th exon of the path would be required, or adding more than "stringency" parameter exons total, scrap the whole thing, it's too unreliable
+void SequenceGraph::fixPath(std::vector<int> &exons, int stringency) {
 
 	std::vector<int> newexons;
 	int addedCount = 0;
@@ -742,16 +742,14 @@ void SequenceGraph::fixPath(std::vector<int> &exons) {
 
 	newexons.push_back(exons.at(exons.size()-1));
 
-	if(addedCount > 3 || toohard)
+	if(addedCount > stringency || toohard)
 		newexons.clear();
 
 	exons = newexons;
 
 }
 
-std::string SequenceGraph::convertChainToExons(ColinearChain chain) {
-
-	std::stringstream sstm;
+std::vector<int> SequenceGraph::convertChainToExons(ColinearChain chain, int stringency) {
 
 	std::vector<Tuple*> tuples = chain.chain;
 	std::vector<int> exons;
@@ -796,17 +794,9 @@ std::string SequenceGraph::convertChainToExons(ColinearChain chain) {
 		}
 	}
 
-	this->fixPath(exons);
+	this->fixPath(exons, stringency);
 
-	if(exons.size() == 0)
-		return "";
-
-	for(unsigned i=0;i<exons.size()-1;i++)
-		sstm << exons.at(i) << " ";
-	sstm << exons.at(exons.size()-1);
-
-
-	return sstm.str();
+	return exons;
 
 }
 
