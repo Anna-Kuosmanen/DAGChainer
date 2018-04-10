@@ -386,9 +386,17 @@ void SequenceGraph::convertMEMToTuple(std::vector<Tuple*> &tuples, std::vector<T
 
 			this->backtrackPath(path, seq, 0, curvertex);
 		}
-	
-		if(rc)
-			revtuples.push_back(new Tuple(path, mem.begin, mem.end));
+		// Reverse went backwards, so have to reverse the path
+		if(rc) {
+			std::vector<int> revpath;
+			if(path.size() > 0) {
+				for(int i=path.size()-1;i>=0;--i) {
+					revpath.push_back(path.at(i));
+				}
+			}
+
+			revtuples.push_back(new Tuple(revpath, mem.begin, mem.end));
+		}
 		else
 			tuples.push_back(new Tuple(path, mem.begin, mem.end));
 

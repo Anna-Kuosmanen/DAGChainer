@@ -71,6 +71,9 @@ FastaEntry FastaReader::next() {
 	// Uppercase in case there are lowercase bases, those cause issues
 	std::transform(seq.begin(), seq.end(), seq.begin(), ::toupper);
 
+
+	this->fastastream.seekg(lastrowstart, std::ios_base::beg);
+
 	if(seq != "") {
 		return FastaEntry(id, seq);
 	}
@@ -80,6 +83,5 @@ FastaEntry FastaReader::next() {
 		return FastaEntry();
 	}
 
-	this->fastastream.seekg(lastrowstart, std::ios_base::beg);
 
 }
