@@ -3,7 +3,7 @@
  * SequenceGraph.cpp
  *
  * Created on: Sept 17th 2017
- *	Author: aekuosma
+ *	Author: Anna Kuosmanen
  *
  */
 
@@ -80,7 +80,6 @@ void SequenceGraph::removePathOverlaps(std::vector<Tuple*> &anchors) {
 		Tuple* tup = anchors.at(i);
 		bool modified = false;
 		int last_start = tup->c;
-		int last_path_start = tup->PFirst;
 
 		std::vector<int> new_path;
 		new_path.push_back(tup->PFirst);
@@ -287,7 +286,7 @@ void SequenceGraph::backtrackPath(std::vector<int> &path, std::string seq, int c
 	path.push_back(curvertex->getId());
 
 	// If whole seq hasn't been used, call recursively for your outneighbors
-	if(curpos < seq.size()-1) {
+	if(curpos < int(seq.size()-1)) {
 
 		std::vector<Vertex*> neighbors = curvertex->getOutNeighbors();
 
@@ -358,7 +357,6 @@ void SequenceGraph::convertMEMToTuple(std::vector<Tuple*> &tuples, std::vector<T
 		std::string nodecode = gcsa::Node::decode(node);
 		std::vector<std::string> parts = split(nodecode, ':');
 		bool rc = false;
-
 		if(parts.at(1)[0] == '-') {
 			rc = true;
 			parts.at(1) = parts.at(1).substr(1,std::string::npos);
@@ -397,9 +395,9 @@ void SequenceGraph::convertMEMToTuple(std::vector<Tuple*> &tuples, std::vector<T
 
 			revtuples.push_back(new Tuple(revpath, mem.begin, mem.end));
 		}
-		else
+		else {
 			tuples.push_back(new Tuple(path, mem.begin, mem.end));
-
+		}
 	}
 
 }
@@ -446,19 +444,20 @@ void SequenceGraph::findAnchorsGCSA2(std::vector<Tuple*> &anchors, std::vector<T
 
 	std::vector<MaximalExactMatch> mems;
 
-	// Empty pattern, don't return anything (it'd match everywhere)
+	// Empty pattern, just return (it'd match everywhere)
 	if(pattern.size() == 0) {
-		std::vector<Tuple*> tuples;
 		return;
 	}
 	// Starting from the end
-	int current_pos = pattern.size()-1;
+	int current_pos = int(pattern.size()-1);
 
 	auto full_range = gcsa::range_type(0, gcsa.size()-1);
 	MaximalExactMatch match = MaximalExactMatch(current_pos, current_pos, full_range);
 
-
 	gcsa::range_type last_range = match.range;
+
+	bool prev_jumped = false;
+
 	while(current_pos >= 0) {
 		// Need to remember this, if currently processed char doesn't match
 		last_range = match.range;
@@ -466,26 +465,40 @@ void SequenceGraph::findAnchorsGCSA2(std::vector<Tuple*> &anchors, std::vector<T
 		match.range = gcsa.LF(match.range, gcsa.alpha.char2comp[pattern.at(current_pos)]);
 
 		// No match or exceeded the order of index, report and go to parent to chop from end
-		if(gcsa::Range::empty(match.range) || match.end-current_pos > gcsa.order()) {
+		if(gcsa::Range::empty(match.range) || match.end-current_pos > int(gcsa.order())) {
 			match.begin = current_pos+1;
 			match.range = last_range;
-			// Report if length exceeds the threshold
-			// The first check blocks placeholder if the threshold=0 for some reason
-			if(match.end >= match.begin && match.end-match.begin+1 >= threshold) {
-				mems.push_back(match);
+
+			// Breaks the infinite loop
+			// If a single character mismatches the entire index, then need to move cursor instead of going to parent
+
+			if(last_range == full_range) {
+				if(match.end-match.begin > threshold)
+					mems.push_back(match);
+
+
+				match.end = current_pos-1;
+				match.range = full_range;
+				--current_pos;
+
+				prev_jumped = false;
 
 			}
-			// Note: this is following the example of VG's mapper.cpp, not sure what these step sizes mean
-			size_t last_mem_length = match.end - match.begin+1;
-			gcsa::STNode parent = lcp.parent(last_range);
-			size_t step_size = last_mem_length - parent.lcp();
-			match.end = match.end-step_size;
-			match.range = parent.range();
+			else {
+				// This might not be the right end position yet if we followed a parent last round
+				if(match.end-match.begin > threshold && !prev_jumped)
+					mems.push_back(match);
+
+				gcsa::STNode parent = lcp.parent(last_range);
+				match.end = match.begin+parent.lcp()-1;
+				match.range = parent.range();
+			}
 		}
 		// Matching
 		else {
 			match.begin = current_pos;
-			current_pos--;
+			--current_pos;
+			prev_jumped = false;
 		}
 
 	}
@@ -497,11 +510,11 @@ void SequenceGraph::findAnchorsGCSA2(std::vector<Tuple*> &anchors, std::vector<T
 
 	// Convert to tuples
 	for(unsigned i=0;i<mems.size();i++) {
+
 		gcsa.locate(mems.at(i).range, mems.at(i).nodes);
 
 		this->convertMEMToTuple(anchors, revanchors, mems.at(i), pattern.substr(mems.at(i).begin, mems.at(i).end-mems.at(i).begin+1));
 	}
-
 	// Reverse anchors give the positions in the original pattern that match the reverse complement of the graph
 	// -> have to fix the positions in the pattern to match the reverse complement of the pattern
 	// (otherwise we'd have to look for a colinear chain that goes in descending order in the pattern in ColinearSolver)
@@ -715,7 +728,7 @@ void SequenceGraph::fixPath(std::vector<int> &exons, int stringency) {
 
 			bool found = false;
 
-			for(unsigned k=startExon+1;k<endExon;k++) {
+			for(int k=startExon+1;k<endExon;k++) {
 				bool startNeighborFound = false;
 				bool endNeighborFound = false;
 
