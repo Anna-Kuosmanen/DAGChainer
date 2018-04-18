@@ -2,11 +2,12 @@
  * GenomeReader.h
  *
  * Created on March 14th 2018
- *	Author: aekuosma
+ *	Author: Anna Kuosmanen
  *
  * Special case of FASTA reader, indexes genome FASTA files to allow for fast sequence retrieval
  * (without reading the whole genome to memory)
  *
+ * The lines of the sequence must be of same length, except for the last line.
  */
 
 #ifndef GENOMEREADER_H_

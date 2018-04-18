@@ -1,9 +1,8 @@
 /*
- *
  * ColinearSolver.cpp
  *
  * Created on Oct 3rd 2017
- *	Author: aekuosma
+ *	Author: Anna Kuosmanen
  *
  */
 
@@ -13,10 +12,11 @@
 #include "ColinearSolver.h"
 #include "RMaxQTree.h"
 
+#include <lemon/lgf_reader.h>
+// These are included through the MPC header files
 //#include <lemon/list_graph.h>
 //#include <lemon/adaptors.h>
 //#include <lemon/connectivity.h>
-#include <lemon/lgf_reader.h>
 //#include <lemon/lgf_writer.h>
 //#include <climits> // INT_MAX
 
@@ -199,6 +199,11 @@ void ColinearSolver::computeForward() {
 
 // +1 every key coordinate to shift from 0-based to 1-based (otherwise the key 0 causes issues)
 ColinearChain ColinearSolver::solveForAnchors(std::vector<Tuple*> &M) {
+
+	// If there are no anchors, return failure
+	if(M.size() == 0)
+		return ColinearChain();
+
 	RMaxQTree* ITrees = new RMaxQTree[this->pathcover.size()];
 	RMaxQTree* TTrees = new RMaxQTree[this->pathcover.size()];
 		
@@ -242,7 +247,7 @@ ColinearChain ColinearSolver::solveForAnchors(std::vector<Tuple*> &M) {
 		std::vector<std::pair<int,int> > forwardv = this->forward[v];
 
 		// First process possible forward links to self
-		// This is strictly to handle cases where one path is prefix of another and has length 1 (as ** marked case has to update coverage or path of length 1 is ignored)
+		// This is strictly to handle cases where one path is prefix of another and has length 1 (as the loop below has to update coverage or path of length 1 is ignored)
 		for(unsigned f=0;f<forwardv.size();f++) {
 			std::vector<int> startw = start[forwardv.at(f).first];
 			
@@ -346,7 +351,10 @@ ColinearChain ColinearSolver::solveForAnchors(std::vector<Tuple*> &M) {
 	delete [] TTrees;
 	delete [] ITrees;
 
-	return ColinearChain(solution, maxvalue);
+	if(solution.size() > 0)
+		return ColinearChain(solution, maxvalue);
+	else
+		return ColinearChain();
 	
 }
 
@@ -379,11 +387,11 @@ void ColinearSolver::clearAnchors() {
 
 
 // Solves the co-linear chaining problem for the given read with seed threshold of "minthres" ( = minimum MEM length)
+// If the last parameter is true, check both read and its reverse complement, otherwise just the read
 ColinearChain ColinearSolver::solve(FastaEntry read, std::string gcsa_file, std::string lcp_file, int minthres, bool bothways) {
 	this->clearAnchors();
 
 	std::string id = read.id;
-
 	std::vector<Tuple*> anchors;
 	std::vector<Tuple*> revanchors;
 
@@ -393,19 +401,9 @@ ColinearChain ColinearSolver::solve(FastaEntry read, std::string gcsa_file, std:
 		// TODO Would be nice to create the index objects here and pass them on, but for some reason that causes segmentation fault in gcsa->alpha.char2comp (the object exists, but is not initialized?)
 		SGraph->findAnchorsGCSA2(anchors, revanchors, gcsa_file, lcp_file, read.seq, minthres); 
 
-		ColinearChain chain;
-		ColinearChain revchain;
+		ColinearChain chain = this->solveForAnchors(anchors);
 
-
-		if(anchors.size() > 0)
-			chain = this->solveForAnchors(anchors);
-		else
-			chain = ColinearChain();
-
-		if(revanchors.size() > 0)
-			revchain = this->solveForAnchors(revanchors);
-		else
-			revchain = ColinearChain();
+		ColinearChain revchain = this->solveForAnchors(revanchors);
 
 		if(chain.coverageScore >= revchain.coverageScore) {
 

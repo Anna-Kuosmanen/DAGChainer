@@ -211,7 +211,6 @@ bool SequenceGraph::reportMatch(Vertex* v, int i, int threshold, std::vector<Tup
 
 
 		//TODO The following is clunky, make it nicer when have time
-		// TODO Is this correct? Why report range of length 1?
 		// Check that the starting vertex has only one inneighbors
 		if(current->getInNeighbors().size() > 1) {
 			results.push_back(new Tuple(graphinterval, cuti,cuti));
@@ -309,7 +308,7 @@ void SequenceGraph::backtrackPath(std::vector<int> &path, std::string seq, int c
 
 }
 
-// Going backwards from end
+// Going backwards from end, used for reversecomplement anchors
 void SequenceGraph::backtrackReversePath(std::vector<int> &path, std::string seq, int curpos, Vertex* curvertex) {
 	// If path is of same length as seq, some other branch found the whole thing, return
 	if(path.size() == seq.size())
@@ -346,8 +345,8 @@ void SequenceGraph::backtrackReversePath(std::vector<int> &path, std::string seq
 
 
 // Need to do this here, since Node::decode only gives the first node
-// Need to backtrack with the sequence on the sequencegraph
-// TODO This only works right if GFA is created with "concat" option! Fix.
+// Need to backtrack with the sequence on the sequence graph
+// TODO This has only been tested if GFA is created with concat option, does it work otherwise too?
 void SequenceGraph::convertMEMToTuple(std::vector<Tuple*> &tuples, std::vector<Tuple*> &revtuples, MaximalExactMatch mem, std::string seq) {
 
 	// Each node is a startpoint of a path
@@ -754,11 +753,7 @@ void SequenceGraph::fixPath(std::vector<int> &exons, int stringency) {
 			}
 			else
 				addedCount++;
-
 		}
-
-
-
 	}
 
 	newexons.push_back(exons.at(exons.size()-1));
@@ -788,8 +783,6 @@ std::vector<int> SequenceGraph::convertChainToExons(ColinearChain chain, int str
 		}
 	}
 
-
-
 	for(unsigned i=1;i<tuples.size();i++) {
 		
 		std::vector<int> path = tuples.at(i)->P;
@@ -818,6 +811,5 @@ std::vector<int> SequenceGraph::convertChainToExons(ColinearChain chain, int str
 	this->fixPath(exons, stringency);
 
 	return exons;
-
 }
 

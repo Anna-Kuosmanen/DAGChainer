@@ -2,8 +2,9 @@
  * Tuple.h 
  *
  * Created on: Oct 9th 2017
- *		Author: aekuosma
+ *		Author: Anna Kuosmanen
  *
+ * Tuples of form (P,[c,...,d]), where P is a path in a graph.
  */
 
 #ifndef TUPLE_H_
@@ -14,13 +15,13 @@
 #include <sstream>
 #include <cstdlib> 
 
-// Tuples are of form (P,[c,...,d])
 class Tuple {
 
 public:	
 	// Path
 	std::vector<int> P;
 	
+	// First and last vertices of the path for ease of access
 	int PFirst;
 	int PLast;
 	

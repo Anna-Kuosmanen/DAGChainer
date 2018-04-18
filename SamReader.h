@@ -2,8 +2,9 @@
  * SamReader.h
  *
  * Created on March 7th 2018
- *	Author: aekuosma
+ *	Author: Anna Kuosmanen
  *
+ * A reader for SAM files. Requires that the file is sorted.
  */
 
 #ifndef SAMREADER_H_
@@ -23,9 +24,9 @@ private:
 
 	std::ifstream samstream;
 
+	// Saves the starts of each chromosome for pseudo random access
 	std::unordered_map<std::string, std::streampos> chromStarts;
 	
-
 public:
 
 	SamReader();
@@ -48,8 +49,10 @@ public:
 
 	SamAlignment readAlignment();
 
+	// Returns all the alignments in reference chromosome
 	std::vector<SamAlignment> readAlignmentsRegion(std::string reference);
 
+	// Returns all the alignments in the reference chromosome that overlap the region start-end
 	std::vector<SamAlignment> readAlignmentsRegion(std::string reference, long start, long end);
 
 	// Lists the chromosomes in the SAM file

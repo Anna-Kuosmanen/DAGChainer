@@ -3,7 +3,7 @@
  * utils.h
  *
  * Created on: February 19th 2018
- *      Author: aekuosma
+ *      Author: Anna Kuosmanen
  *
  * Implements some utility functions.
  */

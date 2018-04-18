@@ -2,7 +2,7 @@
  * Vertex.cpp
  *
  * Created on: Sep 16th 2017
- *	Author: aekuosma
+ *	Author: Anna Kuosmanen
  *
  */
  

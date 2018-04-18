@@ -1,7 +1,7 @@
 /*
  * FastaEntry.h
  * Created on March 18th 2018
- *	Author: aekuosma
+ *	Author: Anna Kuosmanen
  *
  * A single FASTA entry for the use of FastaReader.
  *

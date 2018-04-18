@@ -1,9 +1,8 @@
 /*
- *
  * ColinearChain.h
  *
  * Created on March 19th 2018
- *	Author: aekuosma
+ *	Author: Anna Kuosmanen
  *
  * Basically a vector of tuples and the ordered coverage of the chain.
  *
@@ -28,11 +27,11 @@ public:
 		this->coverageScore = coverageScore_;
 	}
 
+	// Dummy to use as "no chain found"
 	ColinearChain() {
 		this->coverageScore = -1;
 
 	}
-
 
 	std::string toString() {
 

@@ -2,8 +2,9 @@
  * MaximalExactMatch.h
  *
  * Created on March 20th 2018
- *	Author: aekuosma
+ *	Author: Anna Kuosmanen
  *
+ * A struct for a MEM.
  */
 
 #ifndef MAXIMALEXACTMATCH_H_

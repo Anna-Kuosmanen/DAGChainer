@@ -2,7 +2,7 @@
  * SamAlignment.cpp
  *
  * Created on: March 5th 2018
- *	Author: aekuosma
+ *	Author: Anna Kuosmanen
  *
  */
 

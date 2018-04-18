@@ -1,16 +1,16 @@
 /*
- * Transcript prediction pipeline that takes as input:
+ * Created: Feb 27, 2018
+ * Author: Anna Kuosmanen
+ *
+ * The pipeline takes as input:
  *   - SAM file of alignments for short reads
  *   - FASTA file of long reads
- *   (- FASTA file of the genome to extract the splicing graph sequence)
+ *   - FASTA file of the genome to extract the splicing graph sequence
  *
  * The pipeline
  *   - creates a splicing graph from the short read alignments
  *   - aligns long reads to the splicing graph using colinear chaining
  *   - predicts transcripts using Traphlor
- *
- * Created: Feb 27, 2018
- * Author: aekuosma
  *
  */
 
@@ -34,7 +34,7 @@
 #include "traphlor/RNA_MPC_SC/MPCPrintUtil.h"
 
 
-
+// Not actually used, a remnant from older version of Traphlor
 double ALT_PRIME_THRESHOLD = 0.3;
 std::string GRAPH_FILE_PREFIX = "gene.graph";
 std::string NODES_FILE_PREFIX = "gene.nodes";
@@ -42,8 +42,7 @@ std::string GFA_FILE_SUFFIX = ".gfa";
 std::string PATHS_FILE_SUFFIX = ".sol";
 std::string TRANSCRIPT_FILE = "transcripts.gtf";
 
-std::string SAMTOOLS = "/cs/work/home/aekuosma/software/samtools/samtools";
-std::string VG = "/cs/work/home/aekuosma/software/vg/bin/vg";
+std::string VG = "vg";
 
 void print_help(char const *name) {
 
@@ -57,9 +56,9 @@ void print_help(char const *name) {
 		<< "    -o OUTPUT --output OUTPUT     Output directory." << std::endl
 		<< "Other options:" << std::endl
 		<< "    -m SEEDLEN --minimum SEEDLEN  Minimum seed length (default 5)." << std::endl
-		<< "    -t INT --stringency INT       How strict the subpath reporting is. Higher values allow for more distant" << std::endl
-		<< "                                  anchors to form a chain (Range: 0-5. Default: 0). If using very high minimum" << std::endl
-		<< "                                  seed length, it is adviced to adjust this parameter, as no anchors might map to smaller exons." << std::endl
+		<< "    -t INT --stringency INT       How strict the subpath reporting is." << std::endl
+		<< "                                  Higher values allow for more distant" << std::endl
+		<< "                                  anchors to form a chain. (Range: 0-5. Default: 0)" << std::endl 
 		<< "    -d  --debug                   Debug mode on." << std::endl;
 
 
@@ -68,7 +67,6 @@ void print_help(char const *name) {
 
 
 void process_region(SamReader* samreader, GenomeReader* genomereader, std::string reference, long start, long end, int file_tally, int mem_length_threshold, bool debug, std::string long_reads_file, std::string odir, int stringency) {
-
 	std::stringstream sstm;
 
 	// Create the splicing graph
@@ -155,7 +153,7 @@ void process_region(SamReader* samreader, GenomeReader* genomereader, std::strin
 	std::string lcp_name = sstm.str();
 	sstm.str("");
 
-	// TODO Should be able to do this without outside calls
+	// TODO Is this doable without outside calls?
 	sstm << VG << " index -g " << gcsa_name << " -k 16 " << odir << "/tmp/" << GRAPH_FILE_PREFIX << "_" << (file_tally +1) << ".vg";
 
 	system(sstm.str().c_str());
@@ -180,7 +178,6 @@ void process_region(SamReader* samreader, GenomeReader* genomereader, std::strin
 	std::vector<std::vector<int> > subpath_vector_list;
 	std::vector<double> subpath_coverages;
 
-	// For each long read consider both the read and its reverse complement
 	while(true) {
 
 		entry = fastareader->next();
@@ -193,6 +190,7 @@ void process_region(SamReader* samreader, GenomeReader* genomereader, std::strin
 		// Do NOT start cleaning them here too, it'll cause pointer havoc!
 
 		// When the last argument is "true", solver checks both forward and reverse complement
+		// and returns the chain with the better coverage
 		ColinearChain bestchain = solver->solve(entry, gcsa_name, lcp_name, mem_length_threshold, true);
 
 		// Check the score, it's -1 if no chain was found
@@ -209,28 +207,6 @@ void process_region(SamReader* samreader, GenomeReader* genomereader, std::strin
 
 		subpath_vector_list.push_back(subpath);
 
-/*		if(subpath_list.size() == 0) {
-			subpath_list.push_back(subpath);
-			subpath_coverages.push_back(1.0);
-		}
-		else {
-			for(unsigned i=0;i<subpath_list.size();i++) {
-				if(subpath_list.at(i) == subpath) {
-					subpath_coverages.at(i)++;
-					break;
-				}
-				// We're at last element and string hasn't been found
-				else if(i == subpath_list.size()-1) {
-					subpath_list.push_back(subpath);
-					subpath_coverages.push_back(1.0);
-					// List size grew, break that the new insert isn't checked
-					break;
-				}
-
-
-			}	
-
-		}*/
 	}
 
 	// List holds a lot of duplicates, sort, count coverages, and convert the final products into strings
@@ -345,7 +321,7 @@ void run_traphlor(std::string odir, int no_of_files, std::string samfile, bool d
 
 	// Convert paths
 
-	// Decide gene IDs in advance (preparation for parallel processing)
+	// Decide gene IDs in advance (preparation for parallel processing, this part is horribly slow)
 
 	int gene_id = 1;
 	std::vector<int> gene_ids;
@@ -414,8 +390,6 @@ int main(int argc, char **argv) {
 		{0, 0, 0, 0}
 
 	};
-
-
 
 	std::string samfile = "";
 	std::string fastafile = "";
@@ -487,8 +461,6 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	
-
 	// Create the folders
 	system(("mkdir " + odir).c_str());
 	system(("mkdir " + odir + "/tmp/").c_str());
@@ -557,7 +529,6 @@ int main(int argc, char **argv) {
 
 	// Traphlor's flow engine and converting the paths to transcripts
 	run_traphlor(odir, int(ranges.size()), samfile, debug);
-
 
 }
 

@@ -3,8 +3,11 @@
  * SequenceGraph.h
  *
  * Created on: Sept 17th 2017
- *	Author: aekuosma
+ *	Author: Anna Kuosmanen
  *
+ * A graph model where each node is a single character.
+ * Currently only supports creation from a splicing graph format where one
+ * file contains the edges and another the node sequences (see function description for details.)
  */
 
 #ifndef SEQUENCEGRAPH_H_
@@ -50,15 +53,17 @@ private:
 		
 	bool reportMatch(Vertex* v, int i, int threshold, std::vector<Tuple*> &results);
 
-	// Helper recursive function for MEM->Tuple conversion
+	// Helpers recursive function for MEM->Tuple conversion
 	void backtrackPath(std::vector<int> &path, std::string seq, int curpos, Vertex* curvertex);
 	void backtrackReversePath(std::vector<int> &path, std::string seq, int curpos, Vertex* curvertex);
 
-
+	// Converts a MEM to a Tuple, and adds it either to "tuples" if it's in forward orientation, or "revtuples" if it's in reversecomplement
 	void convertMEMToTuple(std::vector<Tuple*> &tuples, std::vector<Tuple*> &revtuples, MaximalExactMatch mem, std::string seq);
 
 	// Helper function for convertChainToExons
 	// If the colinear chain doesn't form a valid subpath, fix (e.g. no anchors on a short intervening exon)
+	// Stringency tells how many missing exons can be added
+	// Changes the path into empty if there's no valid path
 	void fixPath(std::vector<int> &exons, int stringency);
 
 public:
@@ -84,13 +89,16 @@ public:
 
 	// Graph file has first row the number of nodes (exons), then the edges (i+1'th row has the outgoing edges from i'th node)
 	// Nodes file has pairs of node number (first row) and the corresponding sequence (second row) for building the sequence graph (they need to be in order, labels are not checked currently!)
-	// Patlen is the length of the reads (needed to initialize the arrays in vertex objects)
+	// Patlen is the length of the reads (needed to initialize the arrays in vertex objects, set to 1 to save space if using GCSA2)
 	bool readSplicingGraphFile(std::string graphfile, std::string nodesfile, int patlen);
 	
 	// Outputs the sequence graph as GFA
 	// If concat is true, concatenate unary paths
+	// If it's false, output each node as a segment
 	void outputGFA(std::string gfaout, bool concat);
 
+	// Converts a colinear chain into a chain of exons
+	// Stringency tells how much adjustment is allowed to make the chain of exons comform into graph structure (bigger = more lenient)
 	std::vector<int> convertChainToExons(ColinearChain chain, int stringency);
 
 };

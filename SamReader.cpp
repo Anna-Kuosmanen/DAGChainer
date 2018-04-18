@@ -2,7 +2,7 @@
  * SamReader.cpp
  *
  * Created on March 7th 2018
- *	Author: aekuosma
+ *	Author: Anna Kuosmanen
  *
  */
 
@@ -29,8 +29,7 @@ SamReader::~SamReader() {
 
 }
 
-//TODO Could add a check that the alignments are clustered by chromosome
-// (if meet a chrom that's not lastchrom but is already in the map, then they're not)
+// Check that the file is ordered, otherwise random access doesn't work
 bool SamReader::Open(std::string filename) {
 	this->samstream.open(filename);
 
@@ -39,32 +38,77 @@ bool SamReader::Open(std::string filename) {
 		return false;
 	}
 
+	bool ordered = true;
+
 	std::string line;
 
 	std::string lastchrom = "";
+
+	// For checking that order is maintained
+	std::vector<std::string> seenchroms;
+	long lastcoord = 0;
+
 	// Saves the start of the line about to be read next
 	std::streampos lastpos;
 
 	while(getline(this->samstream, line)) {
 
+		if(line == "")
+			break;
+
+		if(!ordered)
+			break;
+
 		std::vector<std::string> parts = split(line, '\t');
-		if(parts.at(2) == lastchrom || parts.at(0)[0] == '@') {
+
+		if(parts.at(0)[0] == '@') {
 			lastpos = this->samstream.tellg();
 			continue;
 		}
 
-		chromStarts.insert(std::make_pair(parts.at(2),lastpos));
-		lastchrom = parts.at(2);
-		lastpos = this->samstream.tellg();
+		if(parts.at(2) == lastchrom) {
+			// Check that we're in order within the chromosome
+			if(std::atol(parts.at(3).c_str()) >= lastcoord) {
+				lastpos = this->samstream.tellg();
+				lastcoord = std::atol(parts.at(3).c_str());
+				continue;
+			}
+			else {
+				ordered = false;
+				break;
+			}
+		}
+		else {
+			// New chromosome started, check that we haven't seen it already
+			for(unsigned i=0;i<seenchroms.size();i++) {
+				if(seenchroms.at(i) == parts.at(2)) {
+					ordered = false;
+					break;
+				}
+			}
+
+			chromStarts.insert(std::make_pair(parts.at(2),lastpos));
+			lastchrom = parts.at(2);
+			seenchroms.push_back(lastchrom);
+			lastcoord = std::atol(parts.at(3).c_str());
+			lastpos = this->samstream.tellg();
+		}
 
 	}
 	// Clears EOF
 	this->samstream.clear();
 	this->samstream.seekg(0, std::ios_base::beg);
 
-	return true;
+	if(ordered)
+		return true;
+	else {
+		this->samstream.close();
+		std::cerr << "SamReader error: The SAM file is not sorted." << std::endl;
+		return false;
+	}
 }
 
+// TODO Do some checks that the index values match the file
 bool SamReader::Open(std::string filename, std::string index) {
 	this->samstream.open(filename);
 

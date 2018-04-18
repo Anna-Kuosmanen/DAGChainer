@@ -1,3 +1,4 @@
+## Change these dirs to correspond to the locations of the libraries
 LEMON_DIR=/cs/work/home/aekuosma/lemon/
 SDSL_DIR=/cs/work/home/aekuosma/software/sdsl-lite
 DIVSUFSORT_DIR=/cs/work/home/aekuosma/software
@@ -14,7 +15,7 @@ GCSAOBJS= $(GCSA_DIR)/gcsa.cpp $(GCSA_DIR)/lcp.cpp $(GCSA_DIR)/algorithms.o $(GC
 
 all: transcriptPipeline
 
-transcriptPipeline: $(OBJS) $(MPCOBJS) transcriptPipeline.o
+transcriptPipeline: $(OBJS) $(MPCOBJS) $(GCSAOBJS) transcriptPipeline.o
 	$(CC) $(CXXFLAGS) $(CPPFLAGS) -o transcriptPipeline transcriptPipeline.o $(OBJS) $(MPCOBJS) $(GCSAOBJS) $(INCLUDES) $(LIBRARY) $(LIBS)
 
 

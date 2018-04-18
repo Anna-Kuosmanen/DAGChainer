@@ -2,8 +2,9 @@
  * SamAlignment.h
  *
  * Created on: March 5th 2018
- *	Author: aekuosma
+ *	Author: Anna Kuosmanen
  *
+ * A SAM alignment.
  */
 
 #ifndef SAMALIGNMENT_H_
@@ -17,21 +18,29 @@ class SamAlignment {
 
 private:
 
+	// Query name
 	std::string qname;
+	// Binary flag
 	int flag;
+	// Reference name
 	std::string rname;
 	// First aligned position in the reference
 	long reference_start;
 	// Last aligned position in the reference
 	long reference_end;
+	// Mapping quality
 	int mapq;
+	// CIGAR as string
 	std::string cigarstring;
+	// Cigar as a vector of tuples <length, operation>
 	std::vector<std::pair<int,char> > cigartuples;
 	// The reference of the mate pair (* for not available, = for same as rname)
 	std::string rnext;
 	// The position of the mate pair (0 if unavailable)
 	long pnext;
+	// Template length
 	long tlen;
+	// Sequence
 	std::string seq;
 	// The quality scores for each base of the read
 	std::string qual;
@@ -45,11 +54,14 @@ public:
 	SamAlignment();
 
 	// Takes a line of SAM file and parses it into alignment
+	// Only has basic checks like that flag, positions, etc. are numbers
 	SamAlignment(std::string description);
+
 	SamAlignment(std::string qname, int flag, std::string rname, long reference_start, long mapq, std::string cigar, std::string rnext, long pnext, long tlen, std::string seq, std::string qual, std::map<std::string, std::string> tags);
 
 	~SamAlignment();
 
+	// Checks if the alignment is valid (i.e. the query name isn't "NULL")
 	bool isValid();
 
 	std::string getQueryName();

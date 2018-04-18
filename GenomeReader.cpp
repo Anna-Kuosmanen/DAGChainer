@@ -2,7 +2,7 @@
  * GenomeReader.cpp
  *
  * Created on March 14th 2018
- *	Author: aekuosma
+ *	Author: Anna Kuosmanen
  *
  */
 

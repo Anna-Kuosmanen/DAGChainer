@@ -2,7 +2,7 @@
  * Vertex.h
  *
  * Created on: Sep 16th 2017
- *	Author: aekuosma
+ *	Author: Anna Kuosmanen
  *
  * This is basically a linked list structure
  * 
@@ -18,8 +18,8 @@ class Vertex {
 private:
 	int id;
 	char label;
-	std::vector<int> D; // The vector holding the lengths of suffix of prefix (could this be done as array if the size of the array is passed in constructor?)
-	std::vector<Vertex*> backpointers; // Where the path corresponding to i'th suffix came from
+	std::vector<int> D; // The vector holding the lengths of suffix of prefix (for naive anchor finding)
+	std::vector<Vertex*> backpointers; // Where the path corresponding to i'th suffix came from (again for naive anchor finding)
 	std::vector<Vertex*> outNeighbors;
 	std::vector<Vertex*> inNeighbors;
 

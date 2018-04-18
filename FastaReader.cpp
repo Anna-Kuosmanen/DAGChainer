@@ -2,7 +2,7 @@
  * FastaReader.cpp
  *
  * Created March 18th 2018
- *	Author: aekuosma
+ *	Author: Anna Kuosmanen
  *
  */
 
