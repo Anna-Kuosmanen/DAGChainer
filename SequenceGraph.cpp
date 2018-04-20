@@ -271,18 +271,20 @@ bool SequenceGraph::reportMatch(Vertex* v, int i, int threshold, std::vector<Tup
 	return false;
 }
 
-void SequenceGraph::backtrackPath(std::vector<int> &path, std::string seq, int curpos, Vertex* curvertex) {
+// One graph node can return more than one path, keep track of all
+void SequenceGraph::backtrackPath(std::vector<std::vector<int> > &allpaths, std::vector<int> &path, std::string seq, int curpos, Vertex* curvertex) {
 
-	// If path is of same length as seq, some other branch found the whole thing, return
-	if(path.size() == seq.size())
-		return;
-	
 	// No match, return
 	if(curvertex->getLabel() != seq.at(curpos))
 		return;
 
 	// Otherwise if the label matched, add your id to path
 	path.push_back(curvertex->getId());
+
+	// If the whole sequence has been used up, add to allpaths
+	if(path.size() == seq.size()) {
+		allpaths.push_back(path);
+	}
 
 	// If whole seq hasn't been used, call recursively for your outneighbors
 	if(curpos < int(seq.size()-1)) {
@@ -290,29 +292,17 @@ void SequenceGraph::backtrackPath(std::vector<int> &path, std::string seq, int c
 		std::vector<Vertex*> neighbors = curvertex->getOutNeighbors();
 
 		for(unsigned i=0;i<neighbors.size();i++)
-			this->backtrackPath(path, seq, curpos+1, neighbors.at(i));
+			this->backtrackPath(allpaths,path, seq, curpos+1, neighbors.at(i));
 
-	
-
-		// If after recursing on all outneighbors the sequence hasn't been used up, this couldn't have been it, pop
-		if(path.size() != seq.size()) {
-			
-			while(path.at(path.size()-1) != curvertex->getId()) {
-				path.pop_back();
-			}
-			// And self
-			path.pop_back();
-
-		}
 	}
+
+	// And pop self off the path to return to inneighbor
+	path.pop_back();
 
 }
 
 // Going backwards from end, used for reversecomplement anchors
-void SequenceGraph::backtrackReversePath(std::vector<int> &path, std::string seq, int curpos, Vertex* curvertex) {
-	// If path is of same length as seq, some other branch found the whole thing, return
-	if(path.size() == seq.size())
-		return;
+void SequenceGraph::backtrackReversePath(std::vector<std::vector<int> > &allpaths, std::vector<int> &path, std::string seq, int curpos, Vertex* curvertex) {
 	
 	// No match, return
 	if(curvertex->getLabel() != seq.at(curpos))
@@ -321,25 +311,23 @@ void SequenceGraph::backtrackReversePath(std::vector<int> &path, std::string seq
 	// Otherwise if the label matched, add your id to path
 	path.push_back(curvertex->getId());
 
+	// If the whole sequence has been used up, add to allpaths
+	if(path.size() == seq.size()) {
+		allpaths.push_back(path);
+	}
+
+
 	// If whole seq hasn't been used, call recursively for your inneighbors
 	if(curpos > 0) {
 
 		std::vector<Vertex*> neighbors = curvertex->getInNeighbors();
 		for(unsigned i=0;i<neighbors.size();i++)
-			this->backtrackReversePath(path, seq, curpos-1, neighbors.at(i));
+			this->backtrackReversePath(allpaths, path, seq, curpos-1, neighbors.at(i));
 
-		// If after recursing on all outneighbors the sequence hasn't been used up, this couldn't have been it, pop
-		if(path.size() != seq.size()) {
-			
-			while(path.at(path.size()-1) != curvertex->getId()) {
-				path.pop_back();
-			}
-			// And self
-			path.pop_back();
-
-		}
 	}
 
+	// And pop self off
+	path.pop_back();
 }
 
 
@@ -361,6 +349,8 @@ void SequenceGraph::convertMEMToTuple(std::vector<Tuple*> &tuples, std::vector<T
 			parts.at(1) = parts.at(1).substr(1,std::string::npos);
 		}
 
+		// Each node can return multiple paths if two paths starting at same node spell same sequence
+		std::vector<std::vector<int> > allpaths;
 		std::vector<int> path;
 
 
@@ -372,7 +362,7 @@ void SequenceGraph::convertMEMToTuple(std::vector<Tuple*> &tuples, std::vector<T
 			// Sequence needs to be reverse complemented, and start from the end
 			int nodenumber = this->splicingNodesToSequenceNodes.at(std::atoi(parts.at(0).c_str())-1).second-(std::atoi(parts.at(1).c_str()));
 			Vertex* curvertex = this->getVertex(nodenumber);
-			this->backtrackReversePath(path, reverseComplement(seq), int(seq.size()-1), curvertex);
+			this->backtrackReversePath(allpaths, path, reverseComplement(seq), int(seq.size()-1), curvertex);
 		}
 		else {
 			// The node number of sequence graph is the first node of that exon + offset
@@ -381,21 +371,22 @@ void SequenceGraph::convertMEMToTuple(std::vector<Tuple*> &tuples, std::vector<T
 	
 			Vertex* curvertex = this->getVertex(nodenumber);
 
-			this->backtrackPath(path, seq, 0, curvertex);
+			this->backtrackPath(allpaths, path, seq, 0, curvertex);
 		}
 		// Reverse went backwards, so have to reverse the path
 		if(rc) {
-			std::vector<int> revpath;
-			if(path.size() > 0) {
-				for(int i=path.size()-1;i>=0;--i) {
-					revpath.push_back(path.at(i));
+			for(unsigned p=0;p<allpaths.size();p++) {
+				std::vector<int> revpath;
+				for(int i=allpaths.at(p).size()-1;i>=0;--i) {
+					revpath.push_back(allpaths.at(p).at(i));
 				}
-			}
 
-			revtuples.push_back(new Tuple(revpath, mem.begin, mem.end));
+				revtuples.push_back(new Tuple(revpath, mem.begin, mem.end));
+			}
 		}
 		else {
-			tuples.push_back(new Tuple(path, mem.begin, mem.end));
+			for(unsigned p=0;p<allpaths.size();p++)
+				tuples.push_back(new Tuple(allpaths.at(p), mem.begin, mem.end));
 		}
 	}
 

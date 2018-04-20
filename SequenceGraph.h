@@ -54,8 +54,8 @@ private:
 	bool reportMatch(Vertex* v, int i, int threshold, std::vector<Tuple*> &results);
 
 	// Helpers recursive function for MEM->Tuple conversion
-	void backtrackPath(std::vector<int> &path, std::string seq, int curpos, Vertex* curvertex);
-	void backtrackReversePath(std::vector<int> &path, std::string seq, int curpos, Vertex* curvertex);
+	void backtrackPath(std::vector<std::vector<int> > &allpaths, std::vector<int> &path, std::string seq, int curpos, Vertex* curvertex);
+	void backtrackReversePath(std::vector<std::vector<int> > &allpaths, std::vector<int> &path, std::string seq, int curpos, Vertex* curvertex);
 
 	// Converts a MEM to a Tuple, and adds it either to "tuples" if it's in forward orientation, or "revtuples" if it's in reversecomplement
 	void convertMEMToTuple(std::vector<Tuple*> &tuples, std::vector<Tuple*> &revtuples, MaximalExactMatch mem, std::string seq);
