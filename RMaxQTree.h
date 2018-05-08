@@ -14,9 +14,13 @@
 
 #include <utility>
 
+//static int negative_infinity = - std::numeric_limits<int>::infinity();
+static int negative_infinity = -10000000;
+
+
 class TreeNode {
 public:
-	int key; // key
+	std::pair<int,int> key; // keys are pairs (M[j].d,j)
 	int Cj; // The best coverage
 	int j; // The Tuple index that the best coverage corresponds to
 
@@ -24,13 +28,13 @@ public:
 	TreeNode() {
 	}
 	
-	TreeNode(int key, int j, int Cj) {
+	TreeNode(std::pair<int,int> key, int j, int Cj) {
 		this->key = key;
 		this->Cj = Cj;
 		this->j = j;
 	}
 
-	void setValues(int key, int j, int Cj) {
+	void setValues(std::pair<int,int> key, int j, int Cj) {
 		this->key = key;
 		this->Cj = Cj;
 		this->j = j;
@@ -41,13 +45,13 @@ class RMaxQTree {
 
 private:
 	TreeNode *tree;
-	int *keys;
+	std::pair<int,int> *keys;
 	int treeLen, keyLen;
 
-	void init(int node, int b, int e, int *keys);
+	void init(int node, int b, int e, std::pair<int,int> *keys);
 
 	// Recursive helper function
-	void updateTree(int key, int j, int Cj, int node, int b, int e);
+	void updateTree(std::pair<int,int> key, int j, int Cj, int node, int b, int e);
 
 	// Recursive helper function
 	std::pair<int,int> queryTree(int i, int j, int node, int b, int e);
@@ -60,12 +64,12 @@ public:
 	~RMaxQTree();
 
 	// For filling the empty RMaxQTrees
-	void fillRMaxQTree(int *keys, int keyLen);
+	void fillRMaxQTree(std::pair<int,int> *keys, int keyLen);
 
-	RMaxQTree(int *keys, int keyLen);
+	RMaxQTree(std::pair<int,int> *keys, int keyLen);
 
 	// Update the node with key "key" with the given values
-	void update(int key, int j, int Cj);
+	void update(std::pair<int,int> key, int j, int Cj);
 
 	// Return pair (j,C[j])
 	std::pair<int,int> query(int start, int end);

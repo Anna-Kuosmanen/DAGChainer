@@ -24,6 +24,17 @@
 #include "MC-MPC/decomposer/MPC.h"
 #include "MC-MPC/decomposer/decomposition.h"
 
+// For sorting the key pairs
+struct less_than_key {
+	inline bool operator() (const std::pair<int,int> key1, std::pair<int,int> key2) {
+		if(key1.first != key2.first)
+			return (key1.first < key2.first);
+		else
+			return (key1.second < key2.second);
+
+	}
+};
+
 int ColinearSolver::getPathCoverSize() {
 	return this->pathcover.size();
 }
@@ -141,6 +152,7 @@ void ColinearSolver::solveForPaths(std::string filename) {
 void ColinearSolver::computeForward() {
 
 	int index[this->SGraph->getNoOfVertices()][this->pathcover.size()];
+	int distlast2reach[this->SGraph->getNoOfVertices()][this->pathcover.size()];
 
 	// Init the paths and forward vector
 	for(int i=0;i<this->SGraph->getNoOfVertices();i++) {
@@ -159,12 +171,15 @@ void ColinearSolver::computeForward() {
 		}
 	}
 
+
 	int last2reach[this->SGraph->getNoOfVertices()][this->pathcover.size()];
 
 	// Init all to -1
 	for(int v=0;v<this->SGraph->getNoOfVertices();v++) {
-		for(unsigned i=0;i<pathcover.size();i++)
+		for(unsigned i=0;i<pathcover.size();i++) {
 			last2reach[v][i] = -1;
+			distlast2reach[v][i] = -1;
+		}
 	}
 
 	for(int v=0;v<this->SGraph->getNoOfVertices();v++) {
@@ -173,6 +188,7 @@ void ColinearSolver::computeForward() {
 			// i in paths[v]
 			if(find(vpaths.begin(),vpaths.end(),i)!=vpaths.end()) {
 				last2reach[v][i] = index[v][i];
+				distlast2reach[v][i] = 0;
 			}
 			// i not in paths[v]
 			else {
@@ -181,6 +197,7 @@ void ColinearSolver::computeForward() {
 					int u = inneighbors.at(k)->getId();
 					if(last2reach[u][i] > last2reach[v][i]) {
 						last2reach[v][i] = last2reach[u][i];
+						distlast2reach[v][i] = distlast2reach[u][i]+1;
 					}
 				}
 			
@@ -191,7 +208,9 @@ void ColinearSolver::computeForward() {
 	for(int v=0;v<this->SGraph->getNoOfVertices();v++) {
 		for(unsigned i=0;i<pathcover.size();i++) {
 			if(last2reach[v][i] != -1) {
-				forward.at(pathcover.at(i).at(last2reach[v][i])).push_back(std::make_pair(v,i));
+				if(distlast2reach[v][i] <= this->maxdistance) {
+					forward.at(pathcover.at(i).at(last2reach[v][i])).push_back(std::make_pair(v,i));
+				}
 			}
 		}
 	}
@@ -207,19 +226,18 @@ ColinearChain ColinearSolver::solveForAnchors(std::vector<Tuple*> &M) {
 	RMaxQTree* ITrees = new RMaxQTree[this->pathcover.size()];
 	RMaxQTree* TTrees = new RMaxQTree[this->pathcover.size()];
 		
-	// Get the key list from anchors: all unique M[j].d
-	std::vector<int> keys;
-	keys.push_back(0);
+	// Get the key list from anchors: all pairs (M[j].d,j)
+	std::vector<std::pair<int,int> > keys;
+	keys.push_back(std::make_pair(0,-1));
 		
 	for(unsigned i=0;i<M.size();i++) {
-			if(std::find(keys.begin(), keys.end(), M.at(i)->d+1) == keys.end())
-				keys.push_back(M.at(i)->d+1);
+		keys.push_back(std::make_pair(M.at(i)->d+1,i));
 	}
-		
-	std::sort(keys.begin(),keys.end());
+	
+	std::sort(keys.begin(),keys.end(), less_than_key());
 	
 	// Change into array for the RMaxQTree
-	int keysarray[keys.size()];
+	std::pair<int,int> keysarray[keys.size()];
 	
 	for(unsigned i=0;i<keys.size();i++)
 		keysarray[i] = keys.at(i);
@@ -228,8 +246,8 @@ ColinearChain ColinearSolver::solveForAnchors(std::vector<Tuple*> &M) {
 	for(unsigned i=0;i<this->pathcover.size();i++) {
 		ITrees[i].fillRMaxQTree(keysarray, keys.size());
 		TTrees[i].fillRMaxQTree(keysarray, keys.size());
-		ITrees[i].update(0,-1,0);
-		TTrees[i].update(0,-1,0);
+		ITrees[i].update(std::make_pair(0,-1),-1,0);
+		TTrees[i].update(std::make_pair(0,-1),-1,0);
 	}
 
 	std::vector<int>* start = new std::vector<int>[this->SGraph->getNoOfVertices()];
@@ -242,6 +260,31 @@ ColinearChain ColinearSolver::solveForAnchors(std::vector<Tuple*> &M) {
 	
 	
 	for(int v=0;v<this->SGraph->getNoOfVertices();v++) {
+
+		// Remove the coverage of tuples that are too far (i.e. set their best coverage to -infinity)
+		std::vector<int> pathsv = this->pathsforv[v];
+
+		for(unsigned i=0;i<pathsv.size();i++) {
+			// Find how many'th v is on this path
+			int indexOnPath = -1;
+			for(unsigned j=0;j<pathcover.at(pathsv.at(i)).size();j++) {
+				if(pathcover.at(pathsv.at(i)).at(j) == v) {
+					indexOnPath = j;
+					break;
+				}
+			}
+			// Nothing is too far back
+			if(indexOnPath < this->maxdistance)
+				continue;
+
+			std::vector<int> deltuples = end[pathcover.at(pathsv.at(i)).at(indexOnPath-this->maxdistance)];
+
+			for(unsigned t=0;t<deltuples.size();t++) {
+				TTrees[pathsv.at(i)].update(std::make_pair(M.at(deltuples.at(t))->d+1,deltuples.at(t)),-1,negative_infinity);
+				ITrees[pathsv.at(i)].update(std::make_pair(M.at(deltuples.at(t))->d+1,deltuples.at(t)),-1,negative_infinity);		
+			}
+
+		}
 
 
 		std::vector<std::pair<int,int> > forwardv = this->forward[v];
@@ -274,17 +317,16 @@ ColinearChain ColinearSolver::solveForAnchors(std::vector<Tuple*> &M) {
 				}
 			}
 		}
-	
 
 
 		// For every tuple whose path ends at this vertex, update the trees for all the paths on which this vertex lies
 		for(unsigned j=0;j<end[v].size();j++) {
 
-			std::vector<int> pathsv = this->pathsforv[v];
+//			std::vector<int> pathsv = this->pathsforv[v];
 			for(unsigned i=0;i<pathsv.size();i++) {
 
-				TTrees[pathsv.at(i)].update(M.at(end[v].at(j))->d+1, end[v].at(j),M.at(end[v].at(j))->C);
-				ITrees[pathsv.at(i)].update(M.at(end[v].at(j))->d+1, end[v].at(j),M.at(end[v].at(j))->C-(M.at(end[v].at(j))->d));
+				TTrees[pathsv.at(i)].update(std::make_pair(M.at(end[v].at(j))->d+1,end[v].at(j)), end[v].at(j),M.at(end[v].at(j))->C);
+				ITrees[pathsv.at(i)].update(std::make_pair(M.at(end[v].at(j))->d+1,end[v].at(j)), end[v].at(j),M.at(end[v].at(j))->C-(M.at(end[v].at(j))->d));
 			}
 		}
 		
@@ -359,8 +401,10 @@ ColinearChain ColinearSolver::solveForAnchors(std::vector<Tuple*> &M) {
 }
 
 // TODO Add check that SequenceGraph isn't empty (first giving the graph to solver and then reading it doesn't work)
-ColinearSolver::ColinearSolver(SequenceGraph* &SGraph) {
+// TODO Relative path for the flowgraph.tmp, it's not compatible with running multiple processes in one directory
+ColinearSolver::ColinearSolver(SequenceGraph* &SGraph, int maxdistance) {
 	this->SGraph = SGraph;
+	this->maxdistance = maxdistance;
 
 	// Compute the path cover and forward links for this SequenceGraph
 	std::string tempgraphfile = "flowgraph.tmp";
@@ -402,7 +446,6 @@ ColinearChain ColinearSolver::solve(FastaEntry read, std::string gcsa_file, std:
 		SGraph->findAnchorsGCSA2(anchors, revanchors, gcsa_file, lcp_file, read.seq, minthres); 
 
 		ColinearChain chain = this->solveForAnchors(anchors);
-
 		ColinearChain revchain = this->solveForAnchors(revanchors);
 
 		if(chain.coverageScore >= revchain.coverageScore) {

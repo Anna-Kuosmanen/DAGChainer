@@ -32,6 +32,10 @@ private:
 	// forward[u] from the RECOMB2018 paper
 	std::vector<std::vector<std::pair<int, int> > > forward;
 
+	// (Heuristic) Maximum distance between anchor tuples in the chain (in graph distance)
+	int maxdistance;
+
+
 	// For clean-up purposes, otherwise the old anchor pointers are lost
 	std::vector<Tuple*> lastanchors;
 
@@ -57,7 +61,7 @@ public:
 
 	// Read the SequenceGraph from splicing graph file first,
 	// reading after solver is created doesn't work
-	ColinearSolver(SequenceGraph* &SGraph);
+	ColinearSolver(SequenceGraph* &SGraph, int maxdistance);
 	
 	~ColinearSolver();
 
