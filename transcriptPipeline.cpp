@@ -59,6 +59,7 @@ void print_help(char const *name) {
 		<< "    -t INT --stringency INT       How strict the subpath reporting is." << std::endl
 		<< "                                  Higher values allow for more distant" << std::endl
 		<< "                                  anchors to form a chain. (Range: 0-5. Default: 0)" << std::endl 
+		<< "    -i DIST --distance DIST       (Heuristic) Consider only anchors at most this far apart" << std::endl
 		<< "    -d  --debug                   Debug mode on." << std::endl;
 
 
@@ -66,7 +67,7 @@ void print_help(char const *name) {
 }
 
 
-void process_region(SamReader* samreader, GenomeReader* genomereader, std::string reference, long start, long end, int file_tally, int mem_length_threshold, bool debug, std::string long_reads_file, std::string odir, int stringency) {
+void process_region(SamReader* samreader, GenomeReader* genomereader, std::string reference, long start, long end, int file_tally, int mem_length_threshold, bool debug, std::string long_reads_file, std::string odir, int stringency, int distance) {
 	std::stringstream sstm;
 
 	// Create the splicing graph
@@ -124,7 +125,7 @@ void process_region(SamReader* samreader, GenomeReader* genomereader, std::strin
 	}
 
 
-	ColinearSolver* solver = new ColinearSolver(SGraph);
+	ColinearSolver* solver = new ColinearSolver(SGraph, distance);
 
 	// Write the SequenceGraph object as GFA for MEM finding
 
@@ -387,6 +388,7 @@ int main(int argc, char **argv) {
 		{"minimum", required_argument, 0, 'm'},
 		{"stringency", required_argument, 0, 't'},
 		{"debug", no_argument, 0, 'd'},
+		{"distance", required_argument, 0, 'i'},
 		{0, 0, 0, 0}
 
 	};
@@ -399,10 +401,11 @@ int main(int argc, char **argv) {
 	int mem_length_threshold = 5;
 	bool debug = false;
 	int stringency = 0;
+	int distance = 1000000;
 
 	int option_index = 0;
 	int c;
-	while((c = getopt_long(argc, argv, "s:l:g:o:m:t:d", long_options, &option_index)) != -1){
+	while((c = getopt_long(argc, argv, "s:l:g:o:m:t:di:", long_options, &option_index)) != -1){
 
 		switch(c) {
 			case 's':
@@ -419,6 +422,8 @@ int main(int argc, char **argv) {
 				stringency = atoi(optarg); break;
 			case 'd':
 				debug = true; break;
+			case 'i':
+				distance = atoi(optarg); break;
 
 		}
 	}
@@ -518,7 +523,7 @@ int main(int argc, char **argv) {
 		long end;
 		tie(reference, start, end) = ranges.at(file_tally);
 
-		process_region(sam_handle, genome_handle, reference, start, end, file_tally, mem_length_threshold, debug, fastafile, odir, stringency);
+		process_region(sam_handle, genome_handle, reference, start, end, file_tally, mem_length_threshold, debug, fastafile, odir, stringency, distance);
 	}
 
 	sam_handle->Close();
