@@ -60,6 +60,10 @@ void print_help(char const *name) {
 		<< "                                  Higher values allow for more distant" << std::endl
 		<< "                                  anchors to form a chain. (Range: 0-5. Default: 0)" << std::endl 
 		<< "    -i DIST --distance DIST       (Heuristic) Consider only anchors at most this far apart" << std::endl
+		<< "    -a A --filter-absolute A      (Heuristic) Filter out graphs with less than A average coverage" << std::endl
+		<< "    -p P --filter-percentage P    (Heuristic) Filter out graphs with less than P% of" << std::endl
+		<< "                                  average coverage over all graphs" << std::endl
+		<< "                                  (-a and -p are not mutually exclusive, stricter takes effect)" << std::endl
 		<< "    -d  --debug                   Debug mode on." << std::endl;
 
 
@@ -297,7 +301,91 @@ void process_region(SamReader* samreader, GenomeReader* genomereader, std::strin
 
 }
 
-void run_traphlor(std::string odir, int no_of_files, std::string samfile, bool debug) {
+
+// Calculates the average coverage over all the graphs
+// Used for finding the threshold on which graphs to filter out
+double find_average_coverage(std::string odir, int no_of_files) {
+	std::vector<double> coverages;
+
+	std::stringstream sstm;
+
+	for(int i=1;i<=no_of_files;i++) {
+		sstm << odir << "/tmp/" << GRAPH_FILE_PREFIX << "_" << i;
+		std::ifstream handle(sstm.str().c_str());
+		sstm.str("");
+		std::string line;
+
+		getline(handle, line);
+		int node_number = MPCUtil::getIntValue(line);
+		for(int j=0;j<node_number;j++)
+			getline(handle, line);
+		getline(handle, line);
+		std::vector<std::string> exon_covs;
+		split(exon_covs, line, is_any_of(MPCUtil::SPACE_SEPARATOR));
+		for(unsigned j=0;j<exon_covs.size();j++)
+			coverages.push_back(MPCUtil::getDoubleValue(exon_covs.at(j)));
+
+		handle.close();
+	}
+
+	double cov_sum = 0.0;
+
+	for(unsigned i=0;i<coverages.size();i++)
+		cov_sum += coverages.at(i);
+
+	return cov_sum/coverages.size();
+}
+
+// Filter by coverage
+bool check_graph(std::string graph_file, std::string nodes_file, double total_avg_cov, int a, double p) {
+
+	std::ifstream handle(graph_file.c_str());
+
+	std::string line;
+
+	getline(handle, line);
+
+	int node_number = MPCUtil::getIntValue(line);
+
+	double avg_coverage = 0.0;
+
+	// Read off the adjacencies
+	for(int i=0;i<node_number;i++)
+		getline(handle,line);
+
+	std::vector<std::string> coverages;
+
+	getline(handle, line);
+
+	split(coverages, line, is_any_of(MPCUtil::SPACE_SEPARATOR));
+
+	for(unsigned i=0;i<coverages.size();i++)
+		avg_coverage += MPCUtil::getDoubleValue(coverages.at(i));
+
+	handle.close();
+
+	avg_coverage = 1.0*avg_coverage/coverages.size();
+
+	if(avg_coverage >= total_avg_cov*p and avg_coverage >= a)
+		return true;
+
+	return false;
+}
+
+// Called when there isn't enough evidence that the graph isn't just created from mismappings
+// Writes empty solution file
+void write_empty_solution_file(string odir, int i) {
+
+	std::stringstream sstm;
+	sstm << odir << "/tmp/" << GRAPH_FILE_PREFIX << "_" << i << ".sol";
+	std::ofstream handle(sstm.str().c_str());
+	handle.close();
+
+}
+
+void run_traphlor(std::string odir, int no_of_files, std::string samfile, bool debug, int a, double p) {
+
+	double avg_cov = find_average_coverage(odir, no_of_files);
 
 	std::stringstream sstm;
 
@@ -311,13 +399,20 @@ void run_traphlor(std::string odir, int no_of_files, std::string samfile, bool d
 		std::string nodeFile = sstm.str();
 		sstm.str("");
 
-		MPCGraph g = MPCGraph::createMPCGraph(graphFile, nodeFile);
 
-		MPCPrintUtil::printGraph(g);
+		if((a==0 && p==0.0) || check_graph(graphFile, nodeFile, avg_cov, a, p)) {
 
-		std::string solution = g.solve();
+			MPCGraph g = MPCGraph::createMPCGraph(graphFile, nodeFile);
 
-		MPCPrintUtil::writeSolutionPath(solution, graphFile);
+			MPCPrintUtil::printGraph(g);
+
+			std::string solution = g.solve();
+
+			MPCPrintUtil::writeSolutionPath(solution, graphFile);
+		}
+		else {
+			write_empty_solution_file(odir, i);
+		}
 	}
 
 	// Convert paths
@@ -389,6 +484,8 @@ int main(int argc, char **argv) {
 		{"stringency", required_argument, 0, 't'},
 		{"debug", no_argument, 0, 'd'},
 		{"distance", required_argument, 0, 'i'},
+		{"filter-absolute", required_argument, 0, 'a'},
+		{"filter-percentage", required_argument, 0, 'p'},
 		{0, 0, 0, 0}
 
 	};
@@ -402,10 +499,12 @@ int main(int argc, char **argv) {
 	bool debug = false;
 	int stringency = 0;
 	int distance = 1000000;
+	int a = 0;
+	double p = 0.0;
 
 	int option_index = 0;
 	int c;
-	while((c = getopt_long(argc, argv, "s:l:g:o:m:t:di:", long_options, &option_index)) != -1){
+	while((c = getopt_long(argc, argv, "s:l:g:o:m:t:di:a:p:", long_options, &option_index)) != -1){
 
 		switch(c) {
 			case 's':
@@ -424,6 +523,10 @@ int main(int argc, char **argv) {
 				debug = true; break;
 			case 'i':
 				distance = atoi(optarg); break;
+			case 'a':
+				a = atoi(optarg); break;
+			case 'p':
+				p = atof(optarg); break;
 
 		}
 	}
@@ -435,6 +538,12 @@ int main(int argc, char **argv) {
 
 	if(stringency < 0 || stringency > 5) {
 		std::cerr << "Stringency value should be in range 0-5." << std::endl;
+		print_help(argv[0]);
+		return 1;
+	}
+
+	if(p >= 1.0) {
+		std::cerr << "With --filter-percentage set to 1.0 or higher, you're filtering out everything." << std::endl;
 		print_help(argv[0]);
 		return 1;
 	}
@@ -533,7 +642,7 @@ int main(int argc, char **argv) {
 	delete genome_handle;
 
 	// Traphlor's flow engine and converting the paths to transcripts
-	run_traphlor(odir, int(ranges.size()), samfile, debug);
+	run_traphlor(odir, int(ranges.size()), samfile, debug, a, p);
 
 }
 
