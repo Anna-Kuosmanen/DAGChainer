@@ -196,9 +196,9 @@ std::string GenomeReader::readSequence(std::string chrom, long start, long end) 
 		long diff = (start/this->seqlinelength)*this->pointerlinelength+(start%this->seqlinelength);
 		// Check that the position is still within this chromosome
 		// TODO This is off by the length of the chromosome name, fix
-		auto it = this->chromStarts.find(chrom);
+		auto it = std::find(chroms.begin(),chroms.end(),chrom);
 		it++;
-		std::streampos nextchromstart = it->second;
+		std::streampos nextchromstart = this->chromStarts.find(*it)->second;
 		if(startpos+diff+length < nextchromstart) {
 			this->genomestream.seekg(startpos+diff, std::ios_base::beg);
 
@@ -233,5 +233,6 @@ std::string GenomeReader::readSequenceUpperCase(std::string chrom, long start, l
 	return seq;
 
 }
+
 
 
