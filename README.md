@@ -1,3 +1,7 @@
+**********
+This project has been renamed to Seq2DagChainer, since it turned out DagChainer as a name has already been taken. The new repo can be found at https://github.com/Anna-Kuosmanen/Seq2DagChainer .
+*************************************************************
+
 <h1>DAGChainer</h1>
 <p>This is a preliminary implementation of the algorithms proposed in the article ”Using Minimum Path Cover to Boost Dynamic Programming in DAGs: Co-linear Chaining Extended” by A. Kuosmanen, T. Paavilainen, T. Gagie, R. Chikhi, A. Tomescu and V. Mäkinen (presented in <i>RECOMB2018</i>).</p>
 
